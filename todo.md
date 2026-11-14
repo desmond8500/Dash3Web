@@ -12,6 +12,7 @@ Front End Dash3
 - [x] Bouton pour aller en haut de la page
 - [x] le navbar met le en sticky
 - [x] ajoute un breadcrumb dans le page-header
+- [] ajoute les api manquantes au fur et à mesure rapelle moi de mettre à jour le dash3
 
 ## Tableau de bord
 
@@ -47,5 +48,17 @@ Front End Dash3
 - [] possibilité d'éditer et de supprimer et mettre en favoris
 
 ## Page Projet
+
+- [] garder la meme interrface que dans dash3
+
+## Page articles
+
+- [] garder la meme interrface que dans dash3
+
+## Page marques
+
+- [] garder la meme interrface que dans dash3
+
+## Page fournisseurs
 
 - [] garder la meme interrface que dans dash3
