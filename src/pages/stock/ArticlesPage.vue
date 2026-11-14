@@ -6,7 +6,7 @@
  */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { errorMessage } from '@/api/client'
-import { PRIORITIES, deleteArticle, listBrands, listProviders, saveBrand, saveProvider } from '@/api/dash3'
+import { PRIORITIES, articleTypes, deleteArticle, listBrands, listProviders, orderArticle, saveBrand, saveProvider } from '@/api/dash3'
 import { usePaginatedList } from '@/composables/usePaginatedList'
 import PageHeader from '@/components/PageHeader.vue'
 import Pagination from '@/components/Pagination.vue'
@@ -14,14 +14,15 @@ import ArticleCard from '@/components/cards/ArticleCard.vue'
 import ArticleFormModal from '@/components/forms/ArticleFormModal.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 
-const params = reactive({ per_page: 18, brand_id: undefined, provider_id: undefined, priority_id: undefined })
+const params = reactive({ per_page: 18, brand_id: undefined, provider_id: undefined, priority_id: undefined, type: undefined })
 const { items, page, lastPage, total, search, loading, error, load } = usePaginatedList('/items', params)
 
 const brands = ref([])
 const providers = ref([])
+const types = ref([])
 async function loadFilters() {
   try {
-    ;[brands.value, providers.value] = await Promise.all([listBrands(), listProviders()])
+    ;[brands.value, providers.value, types.value] = await Promise.all([listBrands(), listProviders(), articleTypes()])
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -40,7 +41,7 @@ function setFilter(key, value) {
   load(1)
 }
 function resetFilter() {
-  params.brand_id = params.provider_id = params.priority_id = undefined
+  params.brand_id = params.provider_id = params.priority_id = params.type = undefined
   search.value = ''
   load(1)
 }
@@ -66,6 +67,20 @@ async function remove(article) {
   try {
     await deleteArticle(article.id)
     await load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+
+// ---------- Commander (ajoute l'article aux commandes) ----------
+const notice = ref('')
+async function order(article) {
+  const qty = Number(prompt(`Quantité à commander pour « ${article.designation} » :`, '1'))
+  if (!qty || qty < 1) return
+  try {
+    await orderArticle(article.id, Math.trunc(qty))
+    notice.value = `${Math.trunc(qty)} × ${article.designation} ajouté aux commandes.`
+    setTimeout(() => (notice.value = ''), 4000)
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -108,6 +123,7 @@ async function afterQuickAdd() {
   <div class="page-body">
     <div class="container-xl">
       <div v-if="error" class="alert alert-danger">{{ error }}</div>
+      <div v-if="notice" class="alert alert-success">{{ notice }}</div>
 
       <div class="row g-2">
         <!-- Filtres -->
@@ -180,12 +196,23 @@ async function afterQuickAdd() {
                   </button>
                 </div>
               </div>
-              <!-- Types : API à créer -->
+              <!-- Types -->
               <div class="accordion-item">
                 <h2 class="accordion-header">
                   <button class="accordion-button" :class="{ collapsed: !open.type }" type="button" @click="open.type = !open.type">Types</button>
                 </h2>
-                <div v-show="open.type" class="accordion-body pt-0 text-secondary small">À venir</div>
+                <div v-show="open.type" class="accordion-body pt-0">
+                  <div v-if="!types.length" class="text-secondary small">Aucun type</div>
+                  <span
+                    v-for="t in types"
+                    :key="t.id"
+                    class="badge cursor-pointer mb-1 me-1"
+                    :class="params.type === t.name ? 'bg-primary text-light' : 'bg-primary-lt'"
+                    @click="setFilter('type', t.name)"
+                  >
+                    {{ t.name }}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -206,6 +233,7 @@ async function afterQuickAdd() {
                   :article="a"
                   @edit="openForm($event)"
                   @duplicate="openForm($event, true)"
+                  @order="order"
                   @delete="remove"
                   @brand="setFilter('brand_id', $event)"
                   @provider="setFilter('provider_id', $event)"

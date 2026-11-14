@@ -104,3 +104,9 @@ export const PRIORITIES = [
   { id: 6, name: 'Accessoires' },
   { id: 7, name: 'Forfait' },
 ]
+
+// Onglets et actions ajoutés avec l'API Dash3 (contacts, badges, types, commandes)
+export const clientContacts = async (id) => (await api.get(`/clients/${id}/contacts`)).data?.data ?? []
+export const projetBadges = async (id) => (await api.get(`/projets/${id}/badges`)).data?.data ?? []
+export const articleTypes = async () => (await api.get('/items_types')).data?.data ?? []
+export const orderArticle = (id, quantity = 1) => api.post(`/items/${id}/commande`, { quantity })

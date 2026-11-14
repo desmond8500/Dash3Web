@@ -1,7 +1,7 @@
 <script setup>
 /** Carte article, reprise de resources/views/_card/articleCard.blade.php (Dash3). */
 defineProps({ article: { type: Object, required: true } })
-const emit = defineEmits(['edit', 'duplicate', 'delete', 'brand', 'provider'])
+const emit = defineEmits(['edit', 'duplicate', 'order', 'delete', 'brand', 'provider'])
 
 const price = (n) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(n || 0)) + ' F'
 </script>
@@ -27,6 +27,7 @@ const price = (n) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }
               <div class="dropdown-menu dropdown-menu-end">
                 <button class="dropdown-item" type="button" @click="emit('edit', article)"><i class="ti ti-edit"></i> Éditer</button>
                 <button class="dropdown-item" type="button" @click="emit('duplicate', article)"><i class="ti ti-copy"></i> Dupliquer</button>
+                <button class="dropdown-item" type="button" @click="emit('order', article)"><i class="ti ti-shopping-cart"></i> Commander</button>
                 <div class="dropdown-divider"></div>
                 <button class="dropdown-item text-danger" type="button" @click="emit('delete', article)"><i class="ti ti-trash"></i> Supprimer</button>
               </div>

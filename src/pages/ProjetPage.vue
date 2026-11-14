@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import api, { errorMessage } from '@/api/client'
-import { formatDate, getProjet, toggleProjetFavorite } from '@/api/dash3'
+import { formatDate, getProjet, projetBadges, toggleProjetFavorite } from '@/api/dash3'
 import PageHeader from '@/components/PageHeader.vue'
 import ProjetFormModal from '@/components/forms/ProjetFormModal.vue'
 import ImageUploadModal from '@/components/ImageUploadModal.vue'
@@ -30,7 +30,11 @@ async function load() {
   }
 }
 onMounted(load)
-watch(id, load)
+watch(id, () => {
+  badgesLoaded.value = notesLoaded.value = false
+  tab.value = 'devis'
+  load()
+})
 
 const breadcrumbs = computed(() => [
   { name: 'ERP' },
@@ -51,6 +55,18 @@ const tabs = [
   { key: 'installations', label: 'Installations' },
 ]
 const tab = ref('devis')
+
+const badges = ref([])
+const badgesLoaded = ref(false)
+watch(tab, async (t) => {
+  if (t !== 'badges' || badgesLoaded.value) return
+  try {
+    badges.value = await projetBadges(id.value)
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+  badgesLoaded.value = true
+})
 
 const notes = ref([])
 const notesLoaded = ref(false)
@@ -273,7 +289,28 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
             </div>
           </div>
 
-          <!-- Badges, documents, installations : API à créer -->
+          <!-- Badges -->
+          <div v-else-if="tab === 'badges'">
+            <div v-if="!badgesLoaded" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            <div v-else-if="!badges.length" class="card card-body text-secondary">Aucun badge</div>
+            <div class="row g-2">
+              <div v-for="b in badges" :key="b.id" class="col-md-4">
+                <div class="card card-sm">
+                  <div class="card-body text-center">
+                    <span class="avatar avatar-lg rounded-2 mb-2" :style="b.photo ? { backgroundImage: `url(${b.photo})` } : null">
+                      <i v-if="!b.photo" class="ti ti-id-badge-2"></i>
+                    </span>
+                    <div class="fw-bold">{{ [b.prenom, b.nom].filter(Boolean).join(' ') }}</div>
+                    <div class="text-secondary small">{{ b.fonction }}</div>
+                    <div class="text-secondary small">{{ [b.service, b.direction].filter(Boolean).join(' · ') }}</div>
+                    <div v-if="b.matricule" class="badge bg-blue-lt mt-1">{{ b.matricule }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Documents, installations : à venir -->
           <div v-else class="card card-body text-center text-secondary">
             <i class="ti ti-tools" style="font-size: 2rem"></i>
             <div class="mt-2">{{ tabs.find((t) => t.key === tab)?.label }} : à venir.</div>

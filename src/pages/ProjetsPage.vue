@@ -8,6 +8,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import {
+  clientContacts,
   clientTasks,
   deleteProjet,
   formatDate,
@@ -64,9 +65,26 @@ async function loadTasks() {
   }
 }
 
+const contacts = ref([])
+const contactsLoading = ref(false)
+async function loadContacts() {
+  contactsLoading.value = true
+  try {
+    contacts.value = await clientContacts(clientId.value)
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    contactsLoading.value = false
+  }
+}
+
 watch(tab, (t) => {
-  if (t === 'taches' && clientId.value) loadTasks()
+  if (!clientId.value) return
+  if (t === 'taches') loadTasks()
+  if (t === 'contacts') loadContacts()
 })
+
+const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') || c.societe || '—'
 
 async function init() {
   tab.value = 'projets'
@@ -201,10 +219,29 @@ const statusName = (id) => ({ 1: 'Nouveau', 2: 'En cours', 3: 'En pause', 4: 'Te
             </div>
           </div>
 
-          <!-- Contacts : API à créer -->
-          <div v-else class="card card-body text-center text-secondary">
-            <i class="ti ti-users" style="font-size: 2rem"></i>
-            <div class="mt-2">Contacts du client : à venir.</div>
+          <!-- Contacts du client -->
+          <div v-else class="border border-primary p-2 rounded">
+            <div v-if="contactsLoading" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
+            <div v-else-if="!contacts.length" class="text-secondary p-2">Aucun contact</div>
+            <div class="row g-2">
+              <div v-for="c in contacts" :key="c.id" class="col-md-4">
+                <div class="card card-sm">
+                  <div class="card-body d-flex gap-2">
+                    <span class="avatar rounded-2" :style="c.avatar ? { backgroundImage: `url(${c.avatar})` } : null">
+                      <i v-if="!c.avatar" class="ti ti-user"></i>
+                    </span>
+                    <div class="min-w-0">
+                      <div class="fw-bold">{{ contactName(c) }}</div>
+                      <div class="text-secondary small">{{ [c.fonction, c.societe].filter(Boolean).join(' · ') }}</div>
+                      <div class="small mt-1">
+                        <div v-if="c.phone"><a :href="`tel:${c.phone}`"><i class="ti ti-phone"></i>{{ c.phone }}</a></div>
+                        <div v-if="c.email" class="text-truncate"><a :href="`mailto:${c.email}`"><i class="ti ti-mail"></i>{{ c.email }}</a></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

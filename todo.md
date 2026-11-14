@@ -13,7 +13,7 @@ Front End Dash3
 - [x] le navbar met le en sticky
 - [x] ajoute un breadcrumb dans le page-header
 - [ ] ajoute les api manquantes au fur et à mesure rapelle moi de mettre à jour le dash3
-  - à fusionner puis déployer : desmond8500/Dash3 PR #4 (cartes clients/projets, favoris, logos, filtres articles, tâches d'un client)
+  - Dash3 main à déployer : PR #4 fusionnée (cartes, favoris, logos, filtres) + commit 52dc0ec (contacts client, badges, types, commandes)
 
 ## Tableau de bord
 
@@ -47,17 +47,18 @@ Front End Dash3
 
 - [x] lister les projets sous forme de carte,
 - [x] possibilité d'éditer et de supprimer et mettre en favoris
-- [ ] onglet Contacts du client (API à créer)
+- [x] onglet Contacts du client
 
 ## Page Projet
 
 - [x] garder la meme interrface que dans dash3
-- [ ] onglets Badges, Documents, Installations (API à créer)
+- [x] onglet Badges
+- [ ] onglets Documents et Installations (à venir)
 
 ## Page articles
 
 - [x] garder la meme interrface que dans dash3
-- [ ] filtre Types et action Commander (API à créer)
+- [x] filtre Types et action Commander
 
 ## Page marques
 
