@@ -17,15 +17,17 @@ cp .env.example .env
 npm run dev
 ```
 
-L'application tourne sur http://localhost:5173. En développement, les appels `/api` sont relayés vers le Laravel local (`VITE_DEV_API_TARGET`, par défaut `http://127.0.0.1:8000`).
+L'application tourne sur http://localhost:5173 et se connecte au serveur de production **https://dash3.yonkou.info** : en développement, les appels `/api` passent par le proxy Vite, ce qui évite les problèmes de CORS. Pour travailler sur un Laravel local, mettez `VITE_DEV_API_TARGET=http://127.0.0.1:8000` dans `.env`.
 
 ## Production
 
 ```console
-VITE_API_URL=https://dash3.yonkou.info/api/v1 npm run build
+npm run build
 ```
 
-Le dossier `dist/` est à servir avec une réécriture de toutes les URL vers `index.html` (mode history de Vue Router). Côté Laravel, ajoutez le domaine du front à `CORS_ALLOWED_ORIGINS`.
+Le build appelle directement `https://dash3.yonkou.info/api/v1` (modifiable avec `VITE_API_URL`).
+
+Le dossier `dist/` est à servir avec une réécriture de toutes les URL vers `index.html` (mode history de Vue Router). Côté Laravel, le domaine du front doit être autorisé par `CORS_ALLOWED_ORIGINS` (par défaut `*`, donc tout domaine).
 
 ## Structure
 
