@@ -4,55 +4,61 @@
 
 Front End Dash3
 
-## Tableau de bord
+## Page de devis
 
-- [x] positionner la date à doite dans le page-header sans carte
-- [x] Pour les cartes mettre
-  - Clients
-  - Taches
-  - Articles
-  - Devis
-- [x] reduit de moitié l'espacement entre le navbar et le page header
-- [x] Augmenter la taille des tabler-icons qu'elle soit égale à celle du calendrier à coté de la date
+- [] Dans le formulaire d'ajout, ajouter une liste déroulante facutative à coté du champ description qui permet d'insérer les textes suivants
+  - Fourniture, Tirage, pose et connexion
+  - Extration d'images
+  - Tirage de cables
+- [] Dans le meme formulaire ajouter une liste déroulante facultative :
+  - 60% à la commande et 40% à la livraison
+  - 100% du matériel à la commande et le reliquat à la livraison
+  - Paiement complet avant exécution des travaux
 
-## Page Projets
+## Page CV
 
-- [x] ajouter un petit breadcrumb au dessus des taches composé des liens vers la page de projet, tache
-- [x] Gérer l'ajout et la suppresion des contacts 
+- [] Programmer la page CV
+
+## Page Icones
+
+- [] les dropdown choisir reste déroulé
 
 ## Page Projet
 
-- [x] gérer la consultation, l'ajout et la modification de devis
-- [x] edition des taches
-- [x] gestion des contacts
-- [x] gestion des notes
-- [x] gestion des journaux
-- [x] gestion Documents de tout type
+- [] onglet devis
+  - Afficher le montant total du devis
+  - Afficher la date de paiement
+- [] Onglet badges
+  - créer une carte en dessous de batiment et mettre la liste des modèles de badge
 
-## Page article
+## Page Articles
 
-- [x] garder la meme interrface que dans dash3 (image, tags, quantité +/−, images, documents, liens, articles associés)
+- [] Optimiser les filtres
+- Afficher les tags sur les articles
 
-## Batiments
+## Page Article
 
-- [x] elever le breadcrumb de la section batiment
-- [x] lister les batiments avec les niveaux et les locaux et rediriger vers une page Batiment
+- [] Gestion des liens
+  - ajout et suppression
+- [] Gestion des documents
+  - ajout et suppression
+- [] Ajouter un filtre pour l'ajout des tags
 
-## Page Batiment
+## Stock
 
-- [x] gérer les équipements dans cette page
+- [] Créer une page fournisseur comme dans Dash3 et faire la redirection lorsqu'on clique sur un fournisseur
+- [] meme chose pour les marques
+- [] Créer une page de commandes
 
-## Equipement
+## Journal Page
 
-- [x] les équipements doivent pouvoir etre liés à des articles
-- [x] synchroniser le nombre d'équipements dans la partie batiment avec ceux du plans
-- [x] fusionner ceux du plan avec un décompte au fur et à mesure qu'on les pose
-- [x] reseigner le formulaire type en fonction des tags
-- [x] Changer le placeholder de nom par nom équipement
-- [x] dans la partie caractéristique mettre nom et value
-
-## Plans
-
-- [x] ajouter la possibilité de faire un click droit sur un équipement afin de modifier les propriétés
-  - modifier
-  - dupliquer
+- [] Créer une page un journal
+- [] Associer :
+  - des intervenants
+  - des taches
+  - des devis
+  - des sections
+    - titre
+    - description
+    - photos
+- Integrer un editeur markdown pour editer la section
