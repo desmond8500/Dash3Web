@@ -131,3 +131,22 @@ export const addArticleDependance = async (id, dependenceId) =>
   (await api.post(`/items/${id}/dependances`, { dependence_id: dependenceId })).data?.data ?? []
 export const adjustDependance = (depId, delta) => api.post(`/dependances/${depId}/quantity`, { delta })
 export const removeDependance = (depId) => api.delete(`/dependances/${depId}`)
+
+// ---------- Installations ----------
+export const getInstallations = async (projetId) => (await api.get(`/projets/${projetId}/installations`)).data?.data
+export const saveBuilding = (payload, id) => (id ? api.put(`/buildings/${id}`, payload) : api.post('/buildings', payload))
+export const deleteBuilding = (id) => api.delete(`/buildings/${id}`)
+export const saveInstallationSysteme = (payload, id) => (id ? api.put(`/installation_systemes/${id}`, payload) : api.post('/installation_systemes', payload))
+export const deleteInstallationSysteme = (id) => api.delete(`/installation_systemes/${id}`)
+export const saveEquipement = (payload, id) => (id ? api.put(`/equipements/${id}`, payload) : api.post('/equipements', payload))
+export const deleteEquipement = (id) => api.delete(`/equipements/${id}`)
+export const listPlans = async (projetId) => (await api.get(`/projets/${projetId}/plans`)).data?.data ?? []
+export async function uploadPlan(projetId, file, buildingId = null, name = '') {
+  const fd = new FormData()
+  fd.append('projet_id', projetId)
+  fd.append('file', file)
+  if (buildingId) fd.append('building_id', buildingId)
+  if (name) fd.append('name', name)
+  return (await api.post('/plans', fd)).data?.data
+}
+export const deletePlan = (id) => api.delete(`/plans/${id}`)

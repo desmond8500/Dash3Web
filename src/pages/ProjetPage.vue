@@ -11,6 +11,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import ProjetFormModal from '@/components/forms/ProjetFormModal.vue'
 import ImageUploadModal from '@/components/ImageUploadModal.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
+import InstallationsTab from '@/components/InstallationsTab.vue'
 
 const route = useRoute()
 const id = computed(() => route.params.id)
@@ -356,7 +357,10 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
             </div>
           </div>
 
-          <!-- Documents, installations : à venir -->
+          <!-- Installations : bâtiments › systèmes › équipements, plans -->
+          <InstallationsTab v-else-if="tab === 'installations'" :key="`inst-${id}`" :projet-id="id" />
+
+          <!-- Documents : à venir -->
           <div v-else class="card card-body text-center text-secondary">
             <i class="ti ti-tools" style="font-size: 2rem"></i>
             <div class="mt-2">{{ tabs.find((t) => t.key === tab)?.label }} : à venir.</div>

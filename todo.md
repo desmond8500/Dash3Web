@@ -52,7 +52,9 @@ Front End Dash3
 
 - [x] garder la meme interrface que dans dash3
 - [x] onglet Badges
-- [ ] onglets Documents et Installations (à venir)
+- [ ] onglet Documents (à venir)
+- [x] onglet Installations : bâtiments, systèmes, équipements de base et secondaires, import de plans
+- [ ] placer les équipements sur les plans et exporter en PDF (étape 2)
 - [x] Editer les notes et supprimer (+ ajout)
 
 ## Page devis
