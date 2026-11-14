@@ -266,3 +266,22 @@ export const deleteBrandLink = (linkId) => api.delete(`/brand_links/${linkId}`)
 export const listCommandes = async () => (await api.get('/commandes')).data?.data ?? { commandes: [], low_stock: [] }
 export const setCommandeQuantity = async (articleId, payload) => (await api.put(`/commandes/articles/${articleId}`, payload)).data?.data
 export const removeCommande = (articleId) => api.delete(`/commandes/articles/${articleId}`)
+
+// ---------- Journal détaillé ----------
+export const getJournal = async (id) => (await api.get(`/journaux/${id}`)).data?.data
+export const journalOptions = async (id) => (await api.get(`/journaux/${id}/options`)).data?.data ?? { contacts: [], team: [] }
+export const addIntervenant = async (id, payload) => (await api.post(`/journaux/${id}/intervenants`, payload)).data?.data
+export const removeIntervenant = (id) => api.delete(`/journal_intervenants/${id}`)
+export const saveJournalSection = (payload, id) => (id ? api.put(`/journal_sections/${id}`, payload) : api.post('/journal_sections', payload))
+export const deleteJournalSection = (id) => api.delete(`/journal_sections/${id}`)
+export async function uploadSectionImages(sectionId, files) {
+  const form = new FormData()
+  files.forEach((f) => form.append('images[]', f))
+  return (await api.post(`/journal_sections/${sectionId}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
+}
+export const deleteJournalImage = (id) => api.delete(`/journal_images/${id}`)
+
+// ---------- CV ----------
+export const listCvs = async () => (await api.get('/cvs')).data?.data ?? []
+export const saveCv = (payload, id) => (id ? api.put(`/cvs/${id}`, payload) : api.post('/cvs', payload))
+export const deleteCv = (id) => api.delete(`/cvs/${id}`)

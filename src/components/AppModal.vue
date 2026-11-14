@@ -11,6 +11,8 @@ defineProps({
   submitLabel: { type: String, default: 'Valider' },
   canSubmit: { type: Boolean, default: true },
   error: { type: String, default: '' },
+  /** Masque le pied : fenêtre de simple consultation */
+  hideFooter: { type: Boolean, default: false },
 })
 const emit = defineEmits(['close', 'submit'])
 </script>
@@ -29,7 +31,7 @@ const emit = defineEmits(['close', 'submit'])
               <div v-if="error" class="alert alert-danger">{{ error }}</div>
               <slot />
             </div>
-            <div class="modal-footer">
+            <div v-if="!hideFooter" class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="emit('close')">Fermer</button>
               <button type="submit" class="btn btn-primary" :disabled="saving || !canSubmit">
                 <span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>{{ submitLabel }}

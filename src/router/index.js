@@ -68,7 +68,9 @@ const routes = [
 
       // Paramètres
       { path: 'profil', name: 'profil', component: () => import('@/pages/settings/ProfilePage.vue'), meta: { breadcrumbs: [{ name: 'Paramètres' }, { name: 'Profil' }] } },
-      { path: 'cvs', name: 'cvs', component: ComingSoon, meta: { title: 'Mes CVs', icon: 'ti-file-cv', breadcrumbs: [{ name: 'Paramètres' }, { name: 'Mes CVs' }] } },
+      { path: 'cvs', name: 'cvs', component: () => import('@/pages/settings/CvsPage.vue') },
+      { path: 'journaux', name: 'journaux', component: () => import('@/pages/JournauxPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Journaux' }] } },
+      { path: 'journaux/:id', name: 'journal', component: () => import('@/pages/JournalPage.vue'), meta: { section: 'journaux' } },
     ],
   },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue') },

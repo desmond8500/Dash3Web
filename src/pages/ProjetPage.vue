@@ -490,7 +490,7 @@ const progress = computed(() => {
                     <div class="d-flex align-items-start">
                       <div class="min-w-0">
                         <div class="fw-bold">
-                          {{ j.title }}
+                          <RouterLink :to="{ name: 'journal', params: { id: j.id } }" class="text-reset">{{ j.title }}</RouterLink>
                           <span v-if="j.type" class="badge bg-azure-lt ms-1">{{ j.type }}</span>
                         </div>
                         <div v-if="j.description" class="text-secondary description">{{ j.description }}</div>
@@ -498,6 +498,7 @@ const progress = computed(() => {
                       <div class="ms-auto dropdown">
                         <button class="btn btn-action" type="button" data-bs-toggle="dropdown" aria-label="Actions"><i class="ti ti-dots-vertical"></i></button>
                         <div class="dropdown-menu dropdown-menu-end">
+                          <RouterLink class="dropdown-item" :to="{ name: 'journal', params: { id: j.id } }"><i class="ti ti-arrow-right"></i> Ouvrir</RouterLink>
                           <button class="dropdown-item" type="button" @click="openJournal(j)"><i class="ti ti-edit"></i> Éditer</button>
                           <button class="dropdown-item text-danger" type="button" @click="removeJournal(j)"><i class="ti ti-trash"></i> Supprimer</button>
                         </div>
