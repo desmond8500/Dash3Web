@@ -45,4 +45,14 @@ Front End Dash3
 ## Equipement
 
 - [] les équipements doivent pouvoir etre liés à des articles
-- [] 
+- [] synchroniser le nombre d'équipements dans la partie batiment avec ceux du plans
+- [] fusionner ceux du plan avec un décompte au fur et à mesure qu'on les pose
+- [] reseigner le formulaire type en fonction des tags
+- [] Changer le placeholder de nom par nom équipement
+- [] dans la partie caractéristique mettre nom et value
+
+## Plans
+
+- [] ajouter la possibilité de faire un click droit sur un équipement afin de modifier les propriétés
+  - modifier
+  - dupliquer
