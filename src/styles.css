@@ -19,3 +19,10 @@ body {
 .table-clickable tbody tr {
   cursor: pointer;
 }
+
+/* Espacement navbar ↔ en-tête de page réduit de moitié */
+.page-header { margin-top: .625rem; }
+.page-body { margin-top: 1rem; }
+
+/* Icônes du tableau de bord à la taille de l'icône calendrier */
+.dash-icon { font-size: 2rem; line-height: 1; }

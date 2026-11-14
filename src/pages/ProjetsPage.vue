@@ -11,13 +11,14 @@ import {
   clientContacts,
   clientTasks,
   deleteProjet,
-  formatDate,
   getClient,
   toggleClientFavorite,
   toggleProjetFavorite,
 } from '@/api/dash3'
 import { usePaginatedList } from '@/composables/usePaginatedList'
 import PageHeader from '@/components/PageHeader.vue'
+import TaskList from '@/components/erp/TaskList.vue'
+import ContactsGrid from '@/components/erp/ContactsGrid.vue'
 import Pagination from '@/components/Pagination.vue'
 import ProjetCard from '@/components/cards/ProjetCard.vue'
 import ClientSideCard from '@/components/cards/ClientSideCard.vue'
@@ -84,7 +85,6 @@ watch(tab, (t) => {
   if (t === 'contacts') loadContacts()
 })
 
-const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') || c.societe || '—'
 
 async function init() {
   tab.value = 'projets'
@@ -145,8 +145,6 @@ async function favoriteClient() {
   }
 }
 
-const statusBadge = (id) => ({ 1: 'bg-primary', 2: 'bg-warning', 3: 'bg-secondary', 4: 'bg-success' })[id] || 'bg-secondary'
-const statusName = (id) => ({ 1: 'Nouveau', 2: 'En cours', 3: 'En pause', 4: 'Terminé', 5: 'Clôturé' })[id] || '—'
 </script>
 
 <template>
@@ -200,49 +198,18 @@ const statusName = (id) => ({ 1: 'Nouveau', 2: 'En cours', 3: 'En pause', 4: 'Te
             </template>
           </template>
 
-          <!-- Tâches du client -->
-          <div v-else-if="tab === 'taches'" class="card">
-            <div class="card-header"><h3 class="card-title">Tâches</h3></div>
-            <div class="list-group list-group-flush">
-              <div v-if="tasksLoading" class="list-group-item text-center"><div class="spinner-border spinner-border-sm"></div></div>
-              <div v-else-if="!tasks.length" class="list-group-item text-secondary">Aucune tâche</div>
-              <div v-for="t in tasks" :key="t.id" class="list-group-item">
-                <div class="row align-items-center">
-                  <div class="col">
-                    <div class="fw-medium">{{ t.name }}</div>
-                    <div v-if="t.description" class="text-secondary small text-truncate">{{ t.description }}</div>
-                  </div>
-                  <div class="col-auto text-secondary small">{{ formatDate(t.expiration_date) }}</div>
-                  <div class="col-auto"><span class="badge text-white" :class="statusBadge(t.statut_id)">{{ statusName(t.statut_id) }}</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Tâches du client : fil d'Ariane client › projet › tâche -->
+          <TaskList
+            v-else-if="tab === 'taches'"
+            :tasks="tasks"
+            :loading="tasksLoading"
+            :client="client"
+            :defaults="{ client_id: client?.id }"
+            @changed="loadTasks"
+          />
 
-          <!-- Contacts du client -->
-          <div v-else class="border border-primary p-2 rounded">
-            <div v-if="contactsLoading" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
-            <div v-else-if="!contacts.length" class="text-secondary p-2">Aucun contact</div>
-            <div class="row g-2">
-              <div v-for="c in contacts" :key="c.id" class="col-md-4">
-                <div class="card card-sm">
-                  <div class="card-body d-flex gap-2">
-                    <span class="avatar rounded-2" :style="c.avatar ? { backgroundImage: `url(${c.avatar})` } : null">
-                      <i v-if="!c.avatar" class="ti ti-user"></i>
-                    </span>
-                    <div class="min-w-0">
-                      <div class="fw-bold">{{ contactName(c) }}</div>
-                      <div class="text-secondary small">{{ [c.fonction, c.societe].filter(Boolean).join(' · ') }}</div>
-                      <div class="small mt-1">
-                        <div v-if="c.phone"><a :href="`tel:${c.phone}`"><i class="ti ti-phone"></i>{{ c.phone }}</a></div>
-                        <div v-if="c.email" class="text-truncate"><a :href="`mailto:${c.email}`"><i class="ti ti-mail"></i>{{ c.email }}</a></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <!-- Contacts du client : ajout, édition, suppression -->
+          <ContactsGrid v-else :contacts="contacts" :loading="contactsLoading" :defaults="{ client_id: client?.id }" col="col-md-4" @changed="loadContacts" />
         </div>
       </div>
     </div>

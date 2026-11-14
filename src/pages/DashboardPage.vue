@@ -31,8 +31,9 @@ const week = computed(() => {
 // ---------- Compteurs ----------
 const stats = ref([
   { key: 'clients', label: 'Clients', icon: 'ti-users', color: 'bg-primary', endpoint: '/clients', route: 'clients', value: null },
-  { key: 'projets', label: 'Projets', icon: 'ti-briefcase', color: 'bg-green', endpoint: '/projets', route: 'projets', value: null },
   { key: 'taches', label: 'Tâches', icon: 'ti-checklist', color: 'bg-orange', endpoint: '/tasks', route: 'taches', value: null },
+  { key: 'articles', label: 'Articles', icon: 'ti-package', color: 'bg-green', endpoint: '/items', route: 'articles', value: null },
+  { key: 'devis', label: 'Devis', icon: 'ti-file-invoice', color: 'bg-purple', endpoint: '/invoices', route: 'devis-list', value: null },
 ])
 
 onMounted(() => {
@@ -83,25 +84,22 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
 </script>
 
 <template>
-  <PageHeader title="Tableau de bord" />
+  <PageHeader title="Tableau de bord">
+    <template #actions>
+      <!-- Date du jour, sans carte, à droite de l'en-tête -->
+      <div class="d-flex align-items-center gap-2 text-end">
+        <i class="ti ti-calendar-event dash-icon text-primary"></i>
+        <div>
+          <div class="h3 m-0">{{ todayCapitalized }}</div>
+          <div v-if="auth.displayName" class="text-secondary small">Bonjour {{ auth.displayName }}</div>
+        </div>
+      </div>
+    </template>
+  </PageHeader>
 
   <div class="page-body">
     <div class="container-xl">
       <div class="row row-deck row-cards">
-        <!-- Bienvenue + date -->
-        <div class="col-12">
-          <div class="card">
-            <div class="card-body d-flex flex-wrap align-items-center gap-3">
-              <span class="avatar rounded-2 avatar-md bg-primary-lt"><i class="ti ti-calendar-event fs-2"></i></span>
-              <div>
-                <div class="text-secondary small">Aujourd'hui</div>
-                <div class="h3 m-0">{{ todayCapitalized }}</div>
-              </div>
-              <div v-if="auth.displayName" class="ms-md-auto text-secondary">Bonjour {{ auth.displayName }}</div>
-            </div>
-          </div>
-        </div>
-
         <!-- Recherche -->
         <div class="col-12">
           <div class="card">
@@ -165,12 +163,12 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
         </div>
 
         <!-- Compteurs -->
-        <div v-for="s in stats" :key="s.key" class="col-sm-6 col-lg-4">
+        <div v-for="s in stats" :key="s.key" class="col-sm-6 col-lg-3">
           <RouterLink :to="{ name: s.route }" class="card card-sm card-link">
             <div class="card-body">
               <div class="row align-items-center">
                 <div class="col-auto">
-                  <span :class="['text-white avatar rounded-2', s.color]"><i :class="['ti', s.icon]"></i></span>
+                  <span :class="['text-white avatar avatar-md rounded-2', s.color]"><i :class="['ti dash-icon', s.icon]"></i></span>
                 </div>
                 <div class="col">
                   <div class="fw-medium">{{ s.label }}</div>

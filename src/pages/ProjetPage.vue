@@ -4,16 +4,20 @@
  * résumé du projet et bâtiments à gauche, onglets segmentés à droite.
  */
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import api, { errorMessage } from '@/api/client'
-import { formatDate, getProjet, projetBadges, toggleProjetFavorite } from '@/api/dash3'
+import { createDevis, deleteJournal, formatDate, getProjet, projetBadges, saveJournal, toggleProjetFavorite } from '@/api/dash3'
 import PageHeader from '@/components/PageHeader.vue'
 import ProjetFormModal from '@/components/forms/ProjetFormModal.vue'
 import ImageUploadModal from '@/components/ImageUploadModal.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 import InstallationsTab from '@/components/InstallationsTab.vue'
+import TaskList from '@/components/erp/TaskList.vue'
+import ContactsGrid from '@/components/erp/ContactsGrid.vue'
+import ProjetDocuments from '@/components/erp/ProjetDocuments.vue'
 
 const route = useRoute()
+const router = useRouter()
 const id = computed(() => route.params.id)
 
 const projet = ref(null)
@@ -131,9 +135,50 @@ async function favorite() {
   }
 }
 
-const statusBadge = (s) => ({ 1: 'bg-primary', 2: 'bg-warning', 3: 'bg-secondary', 4: 'bg-success' })[s] || 'bg-secondary'
-const statusName = (s) => ({ 1: 'Nouveau', 2: 'En cours', 3: 'En pause', 4: 'Terminé', 5: 'Clôturé' })[s] || '—'
-const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') || c.societe || '—'
+// ---------- Devis : création depuis le projet (la référence est calculée par Dash3) ----------
+const devisFields = [
+  { name: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'Objet du devis' },
+  { name: 'modalite', label: 'Modalités de paiement', placeholder: 'Ex : 60 % à la commande, 40 % à la livraison' },
+  { name: 'note', label: 'Note', type: 'textarea' },
+]
+const devisOpen = ref(false)
+let createdDevis = null
+const submitDevis = async (v) => {
+  createdDevis = await createDevis({ ...v, projet_id: Number(id.value) })
+}
+function onDevisCreated() {
+  devisOpen.value = false
+  if (createdDevis?.id) router.push({ name: 'devis', params: { id: createdDevis.id } })
+}
+
+// ---------- Journaux : ajout, modification, suppression ----------
+const journalFields = [
+  { name: 'title', label: 'Titre', required: true, col: 'col-md-8' },
+  { name: 'date', label: 'Date', type: 'date', required: true, col: 'col-md-4', default: new Date().toISOString().slice(0, 10) },
+  { name: 'type', label: 'Type', placeholder: 'Visite, réunion, intervention…' },
+  { name: 'description', label: 'Description', type: 'textarea' },
+]
+const journalOpen = ref(false)
+const editingJournal = ref(null)
+function openJournal(j = null) {
+  editingJournal.value = j
+  journalOpen.value = true
+}
+const submitJournal = (v) => saveJournal(editingJournal.value ? v : { ...v, projet_id: Number(id.value) }, editingJournal.value?.id)
+async function onJournalSaved() {
+  journalOpen.value = false
+  await load()
+}
+async function removeJournal(j) {
+  if (!confirm(`Supprimer le journal « ${j.title} » ?`)) return
+  try {
+    await deleteJournal(j.id)
+    await load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+const sortedJournals = computed(() => [...(projet.value?.journals ?? [])].sort((a, b) => String(b.date).localeCompare(String(a.date))))
 </script>
 
 <template>
@@ -237,17 +282,26 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
             </button>
           </nav>
 
-          <!-- Devis -->
+          <!-- Devis : consultation, création ; modification dans la page devis -->
           <div v-if="tab === 'devis'" class="card">
+            <div class="card-header">
+              <h3 class="card-title">Devis</h3>
+              <button class="btn btn-primary btn-sm ms-auto" @click="devisOpen = true"><i class="ti ti-plus"></i> Devis</button>
+            </div>
             <div class="table-responsive">
               <table class="table table-vcenter card-table">
-                <thead><tr><th>Référence</th><th>Description</th><th>Statut</th></tr></thead>
+                <thead><tr><th>Référence</th><th>Description</th><th>Statut</th><th class="w-1"></th></tr></thead>
                 <tbody>
-                  <tr v-if="!projet.invoices?.length"><td colspan="3" class="text-center text-secondary py-3">Aucun devis</td></tr>
+                  <tr v-if="!projet.invoices?.length"><td colspan="4" class="text-center text-secondary py-3">Aucun devis</td></tr>
                   <tr v-for="d in projet.invoices" :key="d.id">
                     <td class="fw-medium"><RouterLink :to="{ name: 'devis', params: { id: d.id } }">{{ d.reference }}</RouterLink></td>
                     <td class="text-secondary">{{ d.description }}</td>
                     <td><span v-if="d.statut" class="badge bg-blue-lt">{{ d.statut }}</span></td>
+                    <td>
+                      <RouterLink :to="{ name: 'devis', params: { id: d.id } }" class="btn btn-icon btn-ghost-primary" title="Ouvrir et modifier">
+                        <i class="ti ti-edit"></i>
+                      </RouterLink>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -255,40 +309,17 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
           </div>
 
           <!-- Tâches -->
-          <div v-else-if="tab === 'taches'" class="card">
-            <div class="list-group list-group-flush">
-              <div v-if="!projet.tasks?.length" class="list-group-item text-secondary">Aucune tâche</div>
-              <div v-for="t in projet.tasks" :key="t.id" class="list-group-item">
-                <div class="row align-items-center">
-                  <div class="col">
-                    <div class="fw-medium">{{ t.name }}</div>
-                    <div v-if="t.description" class="text-secondary small text-truncate">{{ t.description }}</div>
-                  </div>
-                  <div class="col-auto text-secondary small">{{ formatDate(t.expiration_date) }}</div>
-                  <div class="col-auto"><span class="badge text-white" :class="statusBadge(t.statut_id)">{{ statusName(t.statut_id) }}</span></div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <TaskList
+            v-else-if="tab === 'taches'"
+            :tasks="projet.tasks ?? []"
+            :projet="projet"
+            :client="projet.client_id ? { id: projet.client_id, name: projet.client_name } : null"
+            :defaults="{ projet_id: projet.id, client_id: projet.client_id }"
+            @changed="load"
+          />
 
           <!-- Contacts -->
-          <div v-else-if="tab === 'contacts'" class="border border-primary p-2 rounded">
-            <div v-if="!projet.contacts?.length" class="text-secondary p-2">Aucun contact</div>
-            <div class="row g-2">
-              <div v-for="c in projet.contacts" :key="c.id" class="col-md-6">
-                <div class="card card-sm">
-                  <div class="card-body">
-                    <div class="fw-bold">{{ contactName(c) }}</div>
-                    <div class="text-secondary small">{{ [c.fonction, c.societe].filter(Boolean).join(' · ') }}</div>
-                    <div class="mt-1 small">
-                      <a v-if="c.phone" :href="`tel:${c.phone}`" class="me-2"><i class="ti ti-phone"></i>{{ c.phone }}</a>
-                      <a v-if="c.email" :href="`mailto:${c.email}`"><i class="ti ti-mail"></i>{{ c.email }}</a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ContactsGrid v-else-if="tab === 'contacts'" :contacts="projet.contacts ?? []" :defaults="{ projet_id: projet.id }" @changed="load" />
 
           <!-- Notes -->
           <div v-else-if="tab === 'notes'">
@@ -321,16 +352,28 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
           </div>
 
           <!-- Journaux -->
-          <div v-else-if="tab === 'journaux'" class="row g-2">
-            <div v-if="!projet.journals?.length" class="col-12"><div class="card card-body text-secondary">Aucun journal</div></div>
-            <div v-for="j in projet.journals" :key="j.id" class="col-md-6">
-              <div class="card">
-                <div class="card-body">
-                  <div class="d-flex">
-                    <h4 class="card-title mb-1">{{ j.title }}</h4>
-                    <span class="ms-auto text-secondary small">{{ formatDate(j.date) }}</span>
+          <div v-else-if="tab === 'journaux'">
+            <div class="d-flex mb-2">
+              <button class="btn btn-primary ms-auto" @click="openJournal()"><i class="ti ti-plus"></i> Journal</button>
+            </div>
+            <div class="row g-2">
+              <div v-if="!sortedJournals.length" class="col-12"><div class="card card-body text-secondary">Aucun journal</div></div>
+              <div v-for="j in sortedJournals" :key="j.id" class="col-md-6">
+                <div class="card">
+                  <div class="card-header">
+                    <div>
+                      <h4 class="card-title">{{ j.title }}</h4>
+                      <div class="text-secondary small">{{ formatDate(j.date) }}<span v-if="j.type"> · {{ j.type }}</span></div>
+                    </div>
+                    <div class="card-actions dropdown">
+                      <button class="btn btn-action" type="button" data-bs-toggle="dropdown" aria-label="Actions"><i class="ti ti-dots-vertical"></i></button>
+                      <div class="dropdown-menu dropdown-menu-end">
+                        <button class="dropdown-item" type="button" @click="openJournal(j)"><i class="ti ti-edit"></i> Éditer</button>
+                        <button class="dropdown-item text-danger" type="button" @click="removeJournal(j)"><i class="ti ti-trash"></i> Supprimer</button>
+                      </div>
+                    </div>
                   </div>
-                  <div class="text-secondary description">{{ j.description }}</div>
+                  <div v-if="j.description" class="card-body text-secondary description">{{ j.description }}</div>
                 </div>
               </div>
             </div>
@@ -360,11 +403,8 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
           <!-- Installations : bâtiments › systèmes › équipements, plans -->
           <InstallationsTab v-else-if="tab === 'installations'" :key="`inst-${id}`" :projet-id="id" />
 
-          <!-- Documents : à venir -->
-          <div v-else class="card card-body text-center text-secondary">
-            <i class="ti ti-tools" style="font-size: 2rem"></i>
-            <div class="mt-2">{{ tabs.find((t) => t.key === tab)?.label }} : à venir.</div>
-          </div>
+          <!-- Documents de tout type -->
+          <ProjetDocuments v-else-if="tab === 'documents'" :key="`docs-${id}`" :projet-id="id" />
         </div>
       </div>
     </div>
@@ -379,6 +419,23 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
     :submit="saveNote"
     @close="noteOpen = false"
     @saved="onNoteSaved"
+  />
+  <NamedFormModal
+    :show="devisOpen"
+    title="Nouveau devis"
+    :fields="devisFields"
+    :submit="submitDevis"
+    @close="devisOpen = false"
+    @saved="onDevisCreated"
+  />
+  <NamedFormModal
+    :show="journalOpen"
+    :title="editingJournal ? 'Modifier le journal' : 'Ajouter un journal'"
+    :fields="journalFields"
+    :initial="editingJournal"
+    :submit="submitJournal"
+    @close="journalOpen = false"
+    @saved="onJournalSaved"
   />
   <ImageUploadModal
     :show="logoOpen"

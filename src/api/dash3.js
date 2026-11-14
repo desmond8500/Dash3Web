@@ -183,3 +183,52 @@ export async function listDevis(page = 1, search = '') {
   const { data } = await api.get('/invoices', { params: { page, per_page: 20, search: search || undefined } })
   return normalizeList(data)
 }
+
+// ---------- Projet : contacts, tâches, journaux, documents, création de devis ----------
+export const projetContacts = async (projetId) => (await api.get('/contacts', { params: { projet_id: projetId } })).data?.data ?? []
+export const saveContact = (payload, id) => (id ? api.put(`/contacts/${id}`, payload) : api.post('/contacts', payload))
+export const deleteContact = (id) => api.delete(`/contacts/${id}`)
+
+export const TASK_STATUTS = [
+  { value: 1, label: 'Nouveau' },
+  { value: 2, label: 'En cours' },
+  { value: 3, label: 'En pause' },
+  { value: 4, label: 'Terminé' },
+  { value: 5, label: 'Clôturé' },
+]
+export const saveTask = (payload, id) => (id ? api.put(`/tasks/${id}`, payload) : api.post('/tasks', payload))
+export const deleteTask = (id) => api.delete(`/tasks/${id}`)
+
+export const saveJournal = (payload, id) => (id ? api.put(`/journaux/${id}`, payload) : api.post('/journaux', payload))
+export const deleteJournal = (id) => api.delete(`/journaux/${id}`)
+
+export const createDevis = async (payload) => (await api.post('/invoices', payload)).data?.data
+
+export const projetDocuments = async (projetId) => (await api.get(`/projets/${projetId}/documents`)).data?.data ?? []
+export async function uploadProjetDocument(projetId, file, name = '') {
+  const form = new FormData()
+  form.append('projet_id', projetId)
+  form.append('file', file)
+  if (name) form.append('name', name)
+  return (await api.post('/projet_documents', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
+}
+export const renameProjetDocument = (id, name) => api.put(`/projet_documents/${id}`, { name })
+export const deleteProjetDocument = (id) => api.delete(`/projet_documents/${id}`)
+/** Téléchargement via l'API (jeton Bearer) puis enregistrement côté navigateur */
+export async function downloadProjetDocument(doc) {
+  const { data } = await api.get(`/projet_documents/${doc.id}/file`, { responseType: 'blob' })
+  const url = URL.createObjectURL(data)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = doc.name.includes('.') ? doc.name : `${doc.name}.${doc.extension}`
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+export const formatSize = (bytes) => {
+  if (bytes == null) return '—'
+  const u = ['o', 'Ko', 'Mo', 'Go']
+  let i = 0
+  let n = bytes
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++ }
+  return `${n.toFixed(i ? 1 : 0)} ${u[i]}`
+}
