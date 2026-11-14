@@ -13,7 +13,6 @@ Front End Dash3
 - [x] le navbar met le en sticky
 - [x] ajoute un breadcrumb dans le page-header
 - [ ] ajoute les api manquantes au fur et à mesure rapelle moi de mettre à jour le dash3
-  - Dash3 main à déployer : PR #4 fusionnée (cartes, favoris, logos, filtres) + commit 52dc0ec (contacts client, badges, types, commandes)
 
 ## Tableau de bord
 
@@ -54,11 +53,16 @@ Front End Dash3
 - [x] garder la meme interrface que dans dash3
 - [x] onglet Badges
 - [ ] onglets Documents et Installations (à venir)
+- [ ] Editer les notes et supprimer
 
 ## Page articles
 
 - [x] garder la meme interrface que dans dash3
 - [x] filtre Types et action Commander
+
+## Page article
+
+- [] garder la meme interrface que dans dash3
 
 ## Page marques
 
