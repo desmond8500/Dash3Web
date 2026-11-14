@@ -10,6 +10,7 @@ import { formatDate, getProjet, projetBadges, toggleProjetFavorite } from '@/api
 import PageHeader from '@/components/PageHeader.vue'
 import ProjetFormModal from '@/components/forms/ProjetFormModal.vue'
 import ImageUploadModal from '@/components/ImageUploadModal.vue'
+import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 
 const route = useRoute()
 const id = computed(() => route.params.id)
@@ -70,8 +71,7 @@ watch(tab, async (t) => {
 
 const notes = ref([])
 const notesLoaded = ref(false)
-watch(tab, async (t) => {
-  if (t !== 'notes' || notesLoaded.value) return
+async function loadNotes() {
   try {
     const { data } = await api.get(`/get_projet_notes/${id.value}`)
     notes.value = data?.data ?? []
@@ -79,7 +79,39 @@ watch(tab, async (t) => {
     notes.value = [] // l'API répond en erreur quand il n'y a aucune note
   }
   notesLoaded.value = true
+}
+watch(tab, (t) => {
+  if (t === 'notes' && !notesLoaded.value) loadNotes()
 })
+
+// Ajout, modification, suppression des notes
+const noteFields = [
+  { name: 'titre', label: 'Titre', required: true },
+  { name: 'description', label: 'Description', type: 'textarea' },
+]
+const noteOpen = ref(false)
+const editingNote = ref(null)
+function openNote(note = null) {
+  editingNote.value = note
+  noteOpen.value = true
+}
+function saveNote(values) {
+  const payload = { ...values, projet_id: Number(id.value) }
+  return editingNote.value ? api.put(`/projet_notes/${editingNote.value.id}`, payload) : api.post('/projet_notes', payload)
+}
+async function onNoteSaved() {
+  noteOpen.value = false
+  await loadNotes()
+}
+async function removeNote(note) {
+  if (!confirm(`Supprimer la note « ${note.titre} » ?`)) return
+  try {
+    await api.delete(`/projet_notes/${note.id}`)
+    await loadNotes()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
 
 // ---------- Actions ----------
 const formOpen = ref(false)
@@ -259,15 +291,29 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
 
           <!-- Notes -->
           <div v-else-if="tab === 'notes'">
+            <div class="d-flex mb-2">
+              <button class="btn btn-primary ms-auto" @click="openNote()"><i class="ti ti-plus"></i> Note</button>
+            </div>
             <div v-if="!notesLoaded" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
             <div v-else-if="!notes.length" class="card card-body text-secondary">Aucune note</div>
             <div class="row g-2">
               <div v-for="n in notes" :key="n.id" class="col-md-6">
                 <div class="card">
-                  <div class="card-body">
+                  <div class="card-header">
                     <h4 class="card-title">{{ n.titre }}</h4>
-                    <div class="text-secondary description">{{ n.description }}</div>
+                    <div class="card-actions">
+                      <div class="dropdown">
+                        <button class="btn btn-action" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Actions">
+                          <i class="ti ti-dots-vertical"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                          <button class="dropdown-item" type="button" @click="openNote(n)"><i class="ti ti-edit"></i> Éditer</button>
+                          <button class="dropdown-item text-danger" type="button" @click="removeNote(n)"><i class="ti ti-trash"></i> Supprimer</button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
+                  <div class="card-body text-secondary description">{{ n.description }}</div>
                 </div>
               </div>
             </div>
@@ -321,6 +367,15 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
   </div>
 
   <ProjetFormModal :show="formOpen" :projet="projet" @close="formOpen = false" @saved="onSaved" />
+  <NamedFormModal
+    :show="noteOpen"
+    :title="editingNote ? 'Modifier la note' : 'Ajouter une note'"
+    :fields="noteFields"
+    :initial="editingNote"
+    :submit="saveNote"
+    @close="noteOpen = false"
+    @saved="onNoteSaved"
+  />
   <ImageUploadModal
     :show="logoOpen"
     title="Éditer le logo du projet"

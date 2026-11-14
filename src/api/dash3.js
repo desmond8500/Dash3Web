@@ -110,3 +110,24 @@ export const clientContacts = async (id) => (await api.get(`/clients/${id}/conta
 export const projetBadges = async (id) => (await api.get(`/projets/${id}/badges`)).data?.data ?? []
 export const articleTypes = async () => (await api.get('/items_types')).data?.data ?? []
 export const orderArticle = (id, quantity = 1) => api.post(`/items/${id}/commande`, { quantity })
+
+// ---------- Page article ----------
+export const getArticle = async (id) => (await api.get(`/items/${id}`)).data?.data
+export const articleImages = async (id) => (await api.get(`/items_image/${id}`)).data?.data ?? []
+export const articleLinks = async (id) => (await api.get(`/items_link/${id}`)).data?.data ?? []
+export const articleDocuments = async (id) => (await api.get(`/items_document/${id}`)).data?.data ?? []
+export const adjustArticleQuantity = async (id, delta) => (await api.post(`/items/${id}/quantity`, { delta })).data?.data
+export const attachArticleTag = async (id, name) => (await api.post(`/items/${id}/tags`, { name })).data?.data ?? []
+export const detachArticleTag = async (id, name) => (await api.delete(`/items/${id}/tags`, { params: { name } })).data?.data ?? []
+export async function uploadArticleImages(id, files) {
+  const fd = new FormData()
+  for (const f of files) fd.append('images[]', f)
+  return (await api.post(`/items/${id}/images`, fd)).data?.data ?? []
+}
+export const setArticleDefaultImage = (id, path) => api.post(`/items/${id}/image-default`, { path })
+export const deleteArticleImage = async (id, path) => (await api.delete(`/items/${id}/images`, { params: { path } })).data?.data ?? []
+export const articleDependances = async (id) => (await api.get(`/items/${id}/dependances`)).data?.data ?? []
+export const addArticleDependance = async (id, dependenceId) =>
+  (await api.post(`/items/${id}/dependances`, { dependence_id: dependenceId })).data?.data ?? []
+export const adjustDependance = (depId, delta) => api.post(`/dependances/${depId}/quantity`, { delta })
+export const removeDependance = (depId) => api.delete(`/dependances/${depId}`)

@@ -9,14 +9,14 @@ const price = (n) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }
 <template>
   <div class="card p-2">
     <div class="row g-2">
-      <div class="col-auto">
+      <RouterLink class="col-auto" :to="{ name: 'article', params: { id: article.id } }">
         <img :src="article.image" alt="" class="avatar avatar-xl rounded-2 p-1 bg-white" style="object-fit: contain; max-height: 100px" />
-      </div>
+      </RouterLink>
       <div class="col">
         <div class="row">
           <div class="col">
             <div class="border-bottom pb-2 title">
-              <span class="fw-bold">{{ article.designation }}</span>
+              <RouterLink class="fw-bold" :to="{ name: 'article', params: { id: article.id } }">{{ article.designation }}</RouterLink>
             </div>
           </div>
           <div class="col-auto">
