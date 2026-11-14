@@ -38,7 +38,7 @@ async function load() {
 onMounted(load)
 watch(id, () => {
   badgesLoaded.value = notesLoaded.value = false
-  tab.value = 'devis'
+  tab.value = fromQuery()
   load()
 })
 
@@ -50,17 +50,29 @@ const breadcrumbs = computed(() => [
 ])
 
 // ---------- Onglets ----------
-const tabs = [
-  { key: 'devis', label: 'Devis' },
-  { key: 'taches', label: 'Taches' },
-  { key: 'contacts', label: 'Contacts' },
-  { key: 'badges', label: 'Badges' },
-  { key: 'notes', label: 'Notes' },
-  { key: 'journaux', label: 'Journaux' },
-  { key: 'documents', label: 'Documents' },
-  { key: 'installations', label: 'Installations' },
-]
-const tab = ref('devis')
+// L'onglet actif est gardé dans l'URL (?tab=…) : il survit au rechargement
+// et permet d'arriver directement sur un onglet depuis un lien.
+const TAB_KEYS = ['devis', 'taches', 'contacts', 'badges', 'notes', 'journaux', 'documents', 'installations']
+const fromQuery = () => (TAB_KEYS.includes(route.query.tab) ? route.query.tab : 'devis')
+const tab = ref(fromQuery())
+watch(tab, (t) => {
+  if (t !== route.query.tab) router.replace({ query: { ...route.query, tab: t === 'devis' ? undefined : t } })
+})
+watch(() => route.query.tab, () => {
+  if (route.name === 'projet') tab.value = fromQuery()
+})
+
+const pendingTasks = computed(() => (projet.value?.tasks ?? []).filter((t) => Number(t.statut_id) < 4).length)
+const tabs = computed(() => [
+  { key: 'devis', label: 'Devis', count: projet.value?.invoices?.length },
+  { key: 'taches', label: 'Tâches', count: pendingTasks.value },
+  { key: 'contacts', label: 'Contacts', count: projet.value?.contacts?.length },
+  { key: 'badges', label: 'Badges', count: badgesLoaded.value ? badges.value.length : null },
+  { key: 'notes', label: 'Notes', count: notesLoaded.value ? notes.value.length : null },
+  { key: 'journaux', label: 'Journaux', count: projet.value?.journals?.length },
+  { key: 'documents', label: 'Documents', count: null },
+  { key: 'installations', label: 'Installations', count: projet.value?.buildings?.length },
+])
 
 const badges = ref([])
 const badgesLoaded = ref(false)
@@ -179,6 +191,14 @@ async function removeJournal(j) {
   }
 }
 const sortedJournals = computed(() => [...(projet.value?.journals ?? [])].sort((a, b) => String(b.date).localeCompare(String(a.date))))
+
+// ---------- Avancement : tâches terminées / total ----------
+const progress = computed(() => {
+  const all = projet.value?.tasks ?? []
+  if (!all.length) return null
+  const done = all.filter((t) => Number(t.statut_id) >= 4).length
+  return { done, total: all.length, percent: Math.round((done / all.length) * 100) }
+})
 </script>
 
 <template>
@@ -201,6 +221,30 @@ const sortedJournals = computed(() => [...(projet.value?.journals ?? [])].sort((
   <div class="page-body">
     <div class="container-xl">
       <div v-if="error" class="alert alert-danger">{{ error }}</div>
+
+      <!-- Squelette pendant le premier chargement -->
+      <div v-if="loading && !projet" class="row mb-3">
+        <div class="col-md-4">
+          <div class="card placeholder-glow">
+            <div class="card-body">
+              <div class="placeholder col-7 mb-3"></div>
+              <div class="placeholder col-9 mb-2"></div>
+              <div class="placeholder col-5 mb-2"></div>
+              <div class="placeholder col-8"></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-8">
+          <div class="card placeholder-glow">
+            <div class="card-body">
+              <div class="placeholder col-12 mb-3" style="height: 2rem"></div>
+              <div class="placeholder col-10 mb-2"></div>
+              <div class="placeholder col-7 mb-2"></div>
+              <div class="placeholder col-9"></div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <div v-if="projet" class="row mb-3">
         <!-- Colonne gauche : résumé + bâtiments -->
@@ -250,18 +294,49 @@ const sortedJournals = computed(() => [...(projet.value?.journals ?? [])].sort((
                   <div class="datagrid-content">{{ formatDate(projet.end_date) }}</div>
                 </div>
               </div>
+              <!-- Avancement des tâches -->
+              <div v-if="progress" class="mt-3">
+                <div class="d-flex mb-1 small">
+                  <span class="text-secondary">Avancement des tâches</span>
+                  <span class="ms-auto fw-medium">{{ progress.done }}/{{ progress.total }}</span>
+                </div>
+                <div class="progress progress-sm">
+                  <div
+                    class="progress-bar"
+                    :class="progress.percent === 100 ? 'bg-success' : 'bg-primary'"
+                    :style="{ width: progress.percent + '%' }"
+                    role="progressbar"
+                    :aria-valuenow="progress.percent"
+                    :aria-label="`${progress.percent} %`"
+                  ></div>
+                </div>
+              </div>
               <div v-if="projet.description" class="mt-3 description">{{ projet.description }}</div>
             </div>
           </div>
 
           <div class="card">
-            <div class="card-header"><h3 class="card-title"><i class="ti ti-building"></i>Bâtiments</h3></div>
+            <div class="card-header">
+              <h3 class="card-title"><i class="ti ti-building"></i>Bâtiments</h3>
+              <button class="btn btn-sm ms-auto" title="Gérer les bâtiments" @click="tab = 'installations'"><i class="ti ti-settings"></i></button>
+            </div>
             <div class="list-group list-group-flush">
-              <div v-if="!projet.buildings?.length" class="list-group-item text-secondary">Aucun bâtiment</div>
-              <div v-for="b in projet.buildings" :key="b.id" class="list-group-item">
-                <div class="fw-medium">{{ b.name }}</div>
-                <div v-if="b.description" class="text-secondary small">{{ b.description }}</div>
+              <div v-if="!projet.buildings?.length" class="list-group-item text-secondary">
+                Aucun bâtiment.
+                <a href="#" @click.prevent="tab = 'installations'">En ajouter un</a>
               </div>
+              <RouterLink
+                v-for="b in projet.buildings"
+                :key="b.id"
+                :to="{ name: 'batiment', params: { id, buildingId: b.id } }"
+                class="list-group-item list-group-item-action d-flex align-items-center"
+              >
+                <div class="min-w-0">
+                  <div class="fw-medium">{{ b.name }}</div>
+                  <div v-if="b.description" class="text-secondary small text-truncate">{{ b.description }}</div>
+                </div>
+                <i class="ti ti-chevron-right ms-auto text-secondary"></i>
+              </RouterLink>
             </div>
           </div>
         </div>
@@ -279,6 +354,7 @@ const sortedJournals = computed(() => [...(projet.value?.journals ?? [])].sort((
               @click="tab = t.key"
             >
               {{ t.label }}
+              <span v-if="t.count" class="badge bg-primary-lt ms-1">{{ t.count }}</span>
             </button>
           </nav>
 
@@ -351,29 +427,36 @@ const sortedJournals = computed(() => [...(projet.value?.journals ?? [])].sort((
             </div>
           </div>
 
-          <!-- Journaux -->
-          <div v-else-if="tab === 'journaux'">
-            <div class="d-flex mb-2">
-              <button class="btn btn-primary ms-auto" @click="openJournal()"><i class="ti ti-plus"></i> Journal</button>
+          <!-- Journaux : frise chronologique -->
+          <div v-else-if="tab === 'journaux'" class="card">
+            <div class="card-header">
+              <h3 class="card-title">Journaux</h3>
+              <button class="btn btn-primary btn-sm ms-auto" @click="openJournal()"><i class="ti ti-plus"></i> Journal</button>
             </div>
-            <div class="row g-2">
-              <div v-if="!sortedJournals.length" class="col-12"><div class="card card-body text-secondary">Aucun journal</div></div>
-              <div v-for="j in sortedJournals" :key="j.id" class="col-md-6">
-                <div class="card">
-                  <div class="card-header">
-                    <div>
-                      <h4 class="card-title">{{ j.title }}</h4>
-                      <div class="text-secondary small">{{ formatDate(j.date) }}<span v-if="j.type"> · {{ j.type }}</span></div>
-                    </div>
-                    <div class="card-actions dropdown">
-                      <button class="btn btn-action" type="button" data-bs-toggle="dropdown" aria-label="Actions"><i class="ti ti-dots-vertical"></i></button>
-                      <div class="dropdown-menu dropdown-menu-end">
-                        <button class="dropdown-item" type="button" @click="openJournal(j)"><i class="ti ti-edit"></i> Éditer</button>
-                        <button class="dropdown-item text-danger" type="button" @click="removeJournal(j)"><i class="ti ti-trash"></i> Supprimer</button>
+            <div class="card-body">
+              <div v-if="!sortedJournals.length" class="text-secondary">Aucun journal</div>
+              <div v-else class="list list-timeline">
+                <div v-for="j in sortedJournals" :key="j.id" class="list-timeline-item">
+                  <div class="list-timeline-time text-nowrap">{{ formatDate(j.date) }}</div>
+                  <div class="list-timeline-icon bg-primary"><i class="ti ti-notebook"></i></div>
+                  <div class="list-timeline-content">
+                    <div class="d-flex align-items-start">
+                      <div class="min-w-0">
+                        <div class="fw-bold">
+                          {{ j.title }}
+                          <span v-if="j.type" class="badge bg-azure-lt ms-1">{{ j.type }}</span>
+                        </div>
+                        <div v-if="j.description" class="text-secondary description">{{ j.description }}</div>
+                      </div>
+                      <div class="ms-auto dropdown">
+                        <button class="btn btn-action" type="button" data-bs-toggle="dropdown" aria-label="Actions"><i class="ti ti-dots-vertical"></i></button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                          <button class="dropdown-item" type="button" @click="openJournal(j)"><i class="ti ti-edit"></i> Éditer</button>
+                          <button class="dropdown-item text-danger" type="button" @click="removeJournal(j)"><i class="ti ti-trash"></i> Supprimer</button>
+                        </div>
                       </div>
                     </div>
                   </div>
-                  <div v-if="j.description" class="card-body text-secondary description">{{ j.description }}</div>
                 </div>
               </div>
             </div>
