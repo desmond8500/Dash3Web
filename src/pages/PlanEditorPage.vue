@@ -3,7 +3,7 @@
  * Éditeur de plan : afficher le plan (image ou PDF, DWG converti), placer les équipements
  * de l'installation dessus, les déplacer, enregistrer et exporter un PDF annoté.
  */
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import { getInstallations, getProjet, planFile, planMarkers, savePlanMarkers } from '@/api/dash3'
@@ -16,7 +16,10 @@ const planId = computed(() => route.params.planId)
 
 const projet = ref(null)
 const plan = ref(null)
-const doc = ref(null)
+// Document pdf.js / image : hors réactivité profonde de Vue. pdf.js utilise des champs
+// privés (#…) qui ne sont pas accessibles à travers un proxy réactif
+// (« can't access private field or method: object is not the right class »).
+const doc = shallowRef(null)
 const markers = ref([]) // { uid, equipement_id, page, x, y, label, color }
 const tree = ref(null)
 const loading = ref(true)
@@ -53,7 +56,7 @@ async function load() {
     }
     markers.value = (m.markers || []).map((x) => ({ uid: uid(), equipement_id: x.equipement_id, page: x.page || 1, x: x.x, y: x.y, label: x.label, color: x.color }))
     const blob = await planFile(planId.value, m.plan.kind === 'dwg' ? 'pdf' : null)
-    doc.value = await loadPlan(blob)
+    doc.value = markRaw(await loadPlan(blob))
     await nextTick()
     await draw()
   } catch (e) {
