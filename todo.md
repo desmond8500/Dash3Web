@@ -55,6 +55,10 @@ Front End Dash3
 - [ ] onglets Documents et Installations (à venir)
 - [ ] Editer les notes et supprimer
 
+## Page devis
+
+- [] garder la meme interface que dans dash3
+
 ## Page articles
 
 - [x] garder la meme interrface que dans dash3
