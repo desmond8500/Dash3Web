@@ -160,3 +160,26 @@ export async function planFile(planId, variant = null) {
 export const planMarkers = async (planId) => (await api.get(`/plans/${planId}/markers`)).data?.data
 export const savePlanMarkers = async (planId, markers) => (await api.put(`/plans/${planId}/markers`, { markers })).data?.data
 export const convertPlan = (planId) => api.post(`/plans/${planId}/convert`)
+
+// ---------- Devis ----------
+export const getDevis = async (id) => (await api.get(`/invoices/${id}`)).data?.data
+export const updateDevis = async (id, payload) => (await api.put(`/invoices/${id}`, payload)).data?.data
+export const toggleDevisFavorite = (id) => api.post(`/invoices/${id}/favorite`)
+export const saveSection = (payload, id) => (id ? api.put(`/invoice_sections/${id}`, payload) : api.post('/invoice_sections', payload))
+export const deleteSection = (id) => api.delete(`/invoice_sections/${id}`)
+export const duplicateSection = (id) => api.post(`/invoice_sections/${id}/duplicate`)
+export const saveRow = (payload, id) => (id ? api.put(`/invoice_rows/${id}`, payload) : api.post('/invoice_rows', payload))
+export const deleteRow = (id) => api.delete(`/invoice_rows/${id}`)
+export const addAcompte = (payload) => api.post('/invoice_acomptes', payload)
+export const deleteAcompte = (id) => api.delete(`/invoice_acomptes/${id}`)
+export const addSpent = (payload) => api.post('/invoice_spents', payload)
+export const deleteSpent = (id) => api.delete(`/invoice_spents/${id}`)
+/** PDF du devis généré par Dash3 : type devis | proposition | facture | quantitatif */
+export async function devisPdf(id, type) {
+  const { data } = await api.get(`/facture_pdf/${id}/${type}`, { responseType: 'blob' })
+  return data
+}
+export async function listDevis(page = 1, search = '') {
+  const { data } = await api.get('/invoices', { params: { page, per_page: 20, search: search || undefined } })
+  return normalizeList(data)
+}

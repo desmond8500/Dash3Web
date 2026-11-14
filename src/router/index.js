@@ -40,6 +40,8 @@ const routes = [
         component: () => import('@/pages/PlanEditorPage.vue'),
         meta: { section: 'clients' },
       },
+      { path: 'devis', name: 'devis-list', component: () => import('@/pages/DevisListPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Devis' }] } },
+      { path: 'devis/:id', name: 'devis', component: () => import('@/pages/DevisPage.vue'), meta: { section: 'devis-list' } },
       { path: 'taches', name: 'taches', component: () => import('@/pages/TasksPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Tâches' }] } },
       { path: 'documents', name: 'documents', component: ComingSoon, meta: { title: 'Documents', icon: 'ti-file', breadcrumbs: [{ name: 'ERP' }, { name: 'Documents' }] } },
       { path: 'equipe', name: 'equipe', component: ComingSoon, meta: { title: 'Équipe', icon: 'ti-users-group', breadcrumbs: [{ name: 'ERP' }, { name: 'Équipe' }] } },

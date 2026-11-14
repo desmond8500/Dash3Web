@@ -245,7 +245,7 @@ const contactName = (c) => [c.firstname, c.lastname].filter(Boolean).join(' ') |
                 <tbody>
                   <tr v-if="!projet.invoices?.length"><td colspan="3" class="text-center text-secondary py-3">Aucun devis</td></tr>
                   <tr v-for="d in projet.invoices" :key="d.id">
-                    <td class="fw-medium">{{ d.reference }}</td>
+                    <td class="fw-medium"><RouterLink :to="{ name: 'devis', params: { id: d.id } }">{{ d.reference }}</RouterLink></td>
                     <td class="text-secondary">{{ d.description }}</td>
                     <td><span v-if="d.statut" class="badge bg-blue-lt">{{ d.statut }}</span></td>
                   </tr>

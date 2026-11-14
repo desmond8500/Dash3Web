@@ -146,7 +146,7 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
                       </RouterLink>
                     </template>
                     <template v-else>
-                      <div v-for="d in s.items" :key="d.id" class="list-group-item px-0">
+                      <RouterLink v-for="d in s.items" :key="d.id" :to="{ name: 'devis', params: { id: d.id } }" class="list-group-item list-group-item-action px-0">
                         <div class="d-flex">
                           <div class="fw-medium">{{ d.reference }}</div>
                           <div class="ms-auto">{{ formatAmount(d.montant) }}</div>
@@ -155,7 +155,7 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
                           {{ d.client_name }}<span v-if="d.projet_name"> · {{ d.projet_name }}</span>
                           <span v-if="d.statut" class="badge bg-blue-lt ms-1">{{ d.statut }}</span>
                         </div>
-                      </div>
+                      </RouterLink>
                     </template>
                   </div>
                 </div>

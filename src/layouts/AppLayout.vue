@@ -18,6 +18,7 @@ const menus = [
     icon: 'ti-users',
     submenu: [
       { name: 'Clients', route: 'clients', icon: 'ti-users' },
+      { name: 'Devis', route: 'devis-list', icon: 'ti-file-invoice' },
       { name: 'Documents', route: 'documents', icon: 'ti-file' },
       { name: 'Équipe', route: 'equipe', icon: 'ti-users-group' },
     ],

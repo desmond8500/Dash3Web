@@ -59,7 +59,8 @@ Front End Dash3
 
 ## Page devis
 
-- [] garder la meme interface que dans dash3
+- [x] garder la meme interface que dans dash3 (sections, lignes, quantité / coef, priorités, sous-totaux, marge, taxe, statut, PDF, acomptes, dépenses, documents)
+- [ ] import de devis, procès-verbal, bordereaux, factures, propositions (à venir)
 
 ## Page articles
 
