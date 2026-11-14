@@ -255,3 +255,14 @@ export async function uploadArticleDocument(id, file, name = '') {
   return (await api.post(`/items/${id}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
 }
 export const deleteArticleDocument = (docId) => api.delete(`/items_document/${docId}`)
+
+// ---------- Détail marque / fournisseur ----------
+export const getBrand = async (id) => (await api.get(`/brands/${id}`)).data?.data
+export const getProvider = async (id) => (await api.get(`/providers/${id}`)).data?.data
+export const addBrandLink = async (id, payload) => (await api.post(`/brands/${id}/links`, payload)).data?.data
+export const deleteBrandLink = (linkId) => api.delete(`/brand_links/${linkId}`)
+
+// ---------- Commandes (réapprovisionnement) ----------
+export const listCommandes = async () => (await api.get('/commandes')).data?.data ?? { commandes: [], low_stock: [] }
+export const setCommandeQuantity = async (articleId, payload) => (await api.put(`/commandes/articles/${articleId}`, payload)).data?.data
+export const removeCommande = (articleId) => api.delete(`/commandes/articles/${articleId}`)

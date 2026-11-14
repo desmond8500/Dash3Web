@@ -86,11 +86,11 @@ const articles = (n) => `${n ?? 0} ${(n ?? 0) > 1 ? 'Articles' : 'Article'}`
       <div class="row row-deck g-2">
         <div v-for="b in filtered" :key="b.id" class="col-md-3 col-6">
           <div class="card p-2 position-relative">
-            <div class="text-center">
+            <RouterLink :to="{ name: 'marque', params: { id: b.id } }" class="text-center text-reset">
               <img v-if="b.logo_url" :src="b.logo_url" :alt="b.name" class="img-fluid rounded-2" style="max-height: 100px; margin: auto; display: block" />
               <span v-else class="avatar avatar-xl rounded-2"><i class="ti ti-photo-off" style="font-size: 2rem"></i></span>
-            </div>
-            <div class="card-title text-center mt-2 mb-1">{{ b.name }}</div>
+            </RouterLink>
+            <RouterLink :to="{ name: 'marque', params: { id: b.id } }" class="card-title text-center mt-2 mb-1 text-reset">{{ b.name }}</RouterLink>
             <div v-if="b.description" class="text-muted description">{{ b.description }}</div>
             <div class="text-center mt-auto">{{ articles(b.articles_count) }}</div>
 
@@ -99,6 +99,7 @@ const articles = (n) => `${n ?? 0} ${(n ?? 0) > 1 ? 'Articles' : 'Article'}`
                 <i class="ti ti-chevron-down"></i>
               </button>
               <div class="dropdown-menu dropdown-menu-end">
+                <RouterLink class="dropdown-item" :to="{ name: 'marque', params: { id: b.id } }"><i class="ti ti-arrow-right"></i> Ouvrir</RouterLink>
                 <button class="dropdown-item" type="button" @click="openForm(b)"><i class="ti ti-edit"></i> Éditer</button>
                 <button class="dropdown-item" type="button" @click="openLogo(b)"><i class="ti ti-photo-edit"></i> Éditer image</button>
                 <button class="dropdown-item text-danger" type="button" @click="remove(b)"><i class="ti ti-trash"></i> Supprimer</button>
