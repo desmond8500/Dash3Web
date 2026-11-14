@@ -2,8 +2,14 @@ import axios from 'axios'
 
 export const TOKEN_KEY = 'dash3.token'
 
+/** Serveur Dash3 de production */
+export const PRODUCTION_API_URL = 'https://dash3.yonkou.info/api/v1'
+
+// En dev, /api/v1 passe par le proxy Vite (pas de CORS) ; en build, appel direct à la production.
+const baseURL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? '/api/v1' : PRODUCTION_API_URL)
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL,
   headers: { Accept: 'application/json' },
 })
 
