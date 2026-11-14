@@ -18,7 +18,7 @@ function isLate(t) {
 </script>
 
 <template>
-  <PageHeader title="Tâches" pretitle="ERP" />
+  <PageHeader title="Tâches" />
 
   <div class="page-body">
     <div class="container-xl">

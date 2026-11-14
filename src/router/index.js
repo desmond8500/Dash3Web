@@ -4,6 +4,8 @@ import { setUnauthorizedHandler } from '@/api/client'
 
 import AppLayout from '@/layouts/AppLayout.vue'
 
+const ComingSoon = () => import('@/pages/ComingSoonPage.vue')
+
 const routes = [
   {
     path: '/login',
@@ -17,9 +19,31 @@ const routes = [
     meta: { auth: true },
     children: [
       { path: '', name: 'dashboard', component: () => import('@/pages/DashboardPage.vue') },
-      { path: 'clients', name: 'clients', component: () => import('@/pages/ClientsPage.vue') },
-      { path: 'projets', name: 'projets', component: () => import('@/pages/ProjetsPage.vue') },
-      { path: 'taches', name: 'taches', component: () => import('@/pages/TasksPage.vue') },
+
+      // ERP
+      { path: 'clients', name: 'clients', component: () => import('@/pages/ClientsPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Clients' }] } },
+      {
+        path: 'projets',
+        name: 'projets',
+        component: () => import('@/pages/ProjetsPage.vue'),
+        meta: { section: 'clients', breadcrumbs: [{ name: 'ERP' }, { name: 'Clients', to: { name: 'clients' } }, { name: 'Projets' }] },
+      },
+      { path: 'taches', name: 'taches', component: () => import('@/pages/TasksPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Tâches' }] } },
+      { path: 'documents', name: 'documents', component: ComingSoon, meta: { title: 'Documents', icon: 'ti-file', breadcrumbs: [{ name: 'ERP' }, { name: 'Documents' }] } },
+      { path: 'equipe', name: 'equipe', component: ComingSoon, meta: { title: 'Équipe', icon: 'ti-users-group', breadcrumbs: [{ name: 'ERP' }, { name: 'Équipe' }] } },
+
+      // Stock
+      { path: 'stock/articles', name: 'articles', component: () => import('@/pages/stock/ArticlesPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Articles' }] } },
+      { path: 'stock/achats', name: 'achats', component: () => import('@/pages/stock/AchatsPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Achats' }] } },
+      { path: 'stock/marques', name: 'marques', component: () => import('@/pages/stock/BrandsPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Marques' }] } },
+      { path: 'stock/fournisseurs', name: 'fournisseurs', component: () => import('@/pages/stock/ProvidersPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Fournisseurs' }] } },
+
+      // Comptabilité
+      { path: 'comptabilite/bilan', name: 'bilan', component: () => import('@/pages/compta/BilanPage.vue'), meta: { breadcrumbs: [{ name: 'Comptabilité' }, { name: 'Bilan mensuel' }] } },
+
+      // Paramètres
+      { path: 'profil', name: 'profil', component: () => import('@/pages/settings/ProfilePage.vue'), meta: { breadcrumbs: [{ name: 'Paramètres' }, { name: 'Profil' }] } },
+      { path: 'cvs', name: 'cvs', component: ComingSoon, meta: { title: 'Mes CVs', icon: 'ti-file-cv', breadcrumbs: [{ name: 'Paramètres' }, { name: 'Mes CVs' }] } },
     ],
   },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: () => import('@/pages/NotFoundPage.vue') },
@@ -29,6 +53,8 @@ const router = createRouter({
   history: createWebHistory(),
   routes,
   linkActiveClass: 'active',
+  // Nouvelle page : on repart du haut
+  scrollBehavior: (to, from, saved) => saved || { top: 0 },
 })
 
 router.beforeEach(async (to) => {

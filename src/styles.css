@@ -1,4 +1,17 @@
-/* Ajustements propres à Dash3 par-dessus Tabler */
+/* Ajustements propres à Dash3 par-dessus Tabler, repris du layout de Dash3
+   (la police Inter est chargée dans index.html) */
+:root {
+  --tblr-font-sans-serif: 'Inter Var', -apple-system, BlinkMacSystemFont, 'San Francisco', 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+}
+
+body {
+  font-feature-settings: 'cv03', 'cv04', 'cv11';
+}
+
+.ti {
+  margin-right: 2px;
+}
+
 .cursor-pointer {
   cursor: pointer;
 }

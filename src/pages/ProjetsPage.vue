@@ -27,7 +27,7 @@ function formatDate(d) {
 </script>
 
 <template>
-  <PageHeader title="Projets" pretitle="ERP">
+  <PageHeader title="Projets">
     <template #actions>
       <button v-if="clientId" class="btn btn-outline-secondary" @click="router.push({ name: 'projets' })">
         <i class="ti ti-x me-1"></i>Tous les clients

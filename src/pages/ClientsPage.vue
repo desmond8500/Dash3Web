@@ -58,7 +58,7 @@ async function remove(client) {
 </script>
 
 <template>
-  <PageHeader title="Clients" pretitle="ERP">
+  <PageHeader title="Clients">
     <template #actions>
       <button class="btn btn-primary" @click="openForm()"><i class="ti ti-plus me-1"></i>Nouveau client</button>
     </template>
