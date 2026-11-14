@@ -53,7 +53,7 @@ Front End Dash3
 - [x] garder la meme interrface que dans dash3
 - [x] onglet Badges
 - [ ] onglets Documents et Installations (à venir)
-- [ ] Editer les notes et supprimer
+- [x] Editer les notes et supprimer (+ ajout)
 
 ## Page devis
 
@@ -66,7 +66,7 @@ Front End Dash3
 
 ## Page article
 
-- [] garder la meme interrface que dans dash3
+- [x] garder la meme interrface que dans dash3 (image, tags, quantité +/−, images, documents, liens, articles associés)
 
 ## Page marques
 
