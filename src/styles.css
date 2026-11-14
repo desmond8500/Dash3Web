@@ -1,0 +1,8 @@
+/* Ajustements propres à Dash3 par-dessus Tabler */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.table-clickable tbody tr {
+  cursor: pointer;
+}
