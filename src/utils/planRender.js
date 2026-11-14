@@ -62,7 +62,46 @@ export async function renderPage(doc, pageNo, canvas, scale) {
   return { width: canvas.width, height: canvas.height }
 }
 
-/** Dessine les repères numérotés (cercle de couleur + étiquette) sur un canvas déjà rendu */
+// ---------- Icônes Tabler sur le canvas ----------
+// Le caractère d'une icône (ti-camera → glyphe) est lu dans le CSS de la police
+// (contenu ::before de la classe), puis mis en cache.
+const glyphCache = new Map()
+function tablerGlyph(cls) {
+  if (!cls) return null
+  if (glyphCache.has(cls)) return glyphCache.get(cls)
+  let glyph = null
+  try {
+    const el = document.createElement('i')
+    el.className = `ti ${cls}`
+    el.style.position = 'absolute'
+    el.style.visibility = 'hidden'
+    document.body.appendChild(el)
+    const content = getComputedStyle(el, '::before').content
+    el.remove()
+    if (content && content !== 'none' && content !== 'normal') {
+      const str = content.replace(/^["']|["']$/g, '')
+      if (str.length) glyph = str
+    }
+  } catch {
+    glyph = null
+  }
+  glyphCache.set(cls, glyph)
+  return glyph
+}
+
+/** Charge la police d'icônes avant un rendu canvas (sinon le premier glyphe sort en carré) */
+export async function ensureIconFont() {
+  try {
+    await document.fonts.load('16px "tabler-icons"')
+  } catch {
+    /* la police manque : on retombera sur les numéros */
+  }
+}
+
+/**
+ * Dessine les repères (cercle de couleur + numéro ou icône de l'équipement + étiquette)
+ * sur un canvas déjà rendu. Appeler ensureIconFont() avant pour avoir les icônes.
+ */
 export function drawMarkers(ctx, markers, width, height) {
   const r = Math.max(9, Math.round(Math.min(width, height) * 0.012))
   ctx.textBaseline = 'middle'
@@ -77,20 +116,29 @@ export function drawMarkers(ctx, markers, width, height) {
     ctx.strokeStyle = '#ffffff'
     ctx.stroke()
 
+    // Icône de l'équipement (via les tags de l'article), sinon le numéro
+    const glyph = tablerGlyph(m.icon)
     ctx.fillStyle = '#ffffff'
-    ctx.font = `bold ${Math.round(r * 1.05)}px sans-serif`
     ctx.textAlign = 'center'
-    ctx.fillText(String(m.number), x, y + 1)
+    if (glyph) {
+      ctx.font = `${Math.round(r * 1.25)}px "tabler-icons"`
+      ctx.fillText(glyph, x, y + 1)
+    } else {
+      ctx.font = `bold ${Math.round(r * 1.05)}px sans-serif`
+      ctx.fillText(String(m.number), x, y + 1)
+    }
 
-    if (m.label) {
+    // Avec une icône, le numéro passe dans l'étiquette pour garder le lien avec la légende
+    const label = glyph ? `${m.number}.${m.label ? ` ${m.label}` : ''}` : m.label
+    if (label) {
       ctx.font = `${Math.round(r * 1.1)}px sans-serif`
       ctx.textAlign = 'left'
       const tx = x + r + 4
-      const tw = ctx.measureText(m.label).width
+      const tw = ctx.measureText(label).width
       ctx.fillStyle = 'rgba(255,255,255,0.85)'
       ctx.fillRect(tx - 2, y - r * 0.75, tw + 4, r * 1.5)
       ctx.fillStyle = '#1d273b'
-      ctx.fillText(m.label, tx, y + 1)
+      ctx.fillText(label, tx, y + 1)
     }
   }
 }
@@ -103,6 +151,7 @@ export function drawMarkers(ctx, markers, width, height) {
 export async function exportAnnotatedPdf({ doc, markers, legend, title, filename }) {
   let pdf = null
   const canvas = document.createElement('canvas')
+  await ensureIconFont()
 
   for (let p = 1; p <= doc.pages; p++) {
     const size = await pageSize(doc, p)
