@@ -1,7 +1,7 @@
 <script setup>
 /** Carte article, reprise de resources/views/_card/articleCard.blade.php (Dash3). */
 defineProps({ article: { type: Object, required: true } })
-const emit = defineEmits(['edit', 'duplicate', 'order', 'delete', 'brand', 'provider'])
+const emit = defineEmits(['edit', 'duplicate', 'order', 'delete', 'brand', 'provider', 'tag'])
 
 const price = (n) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(n || 0)) + ' F'
 </script>
@@ -43,6 +43,16 @@ const price = (n) => new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }
             </div>
             <div v-if="article.provider_name" title="Fournisseur" style="font-size: 12px">
               <a href="#" class="badge bg-blue-lt" @click.prevent="emit('provider', article.provider_id)">{{ article.provider_name }}</a>
+            </div>
+            <div v-if="article.tag_names?.length" class="mt-1">
+              <a
+                v-for="t in article.tag_names"
+                :key="t"
+                href="#"
+                class="badge bg-azure-lt me-1"
+                :title="`Filtrer sur « ${t} »`"
+                @click.prevent="emit('tag', t)"
+              >{{ t }}</a>
             </div>
           </div>
           <div class="col-4">

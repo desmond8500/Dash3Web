@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { errorMessage } from '@/api/client'
-import { createDevis, deleteJournal, formatDate, getProjet, projetBadges, saveJournal, toggleProjetFavorite } from '@/api/dash3'
+import { createDevis, deleteJournal, formatAmount, formatDate, getProjet, projetBadges, saveJournal, toggleProjetFavorite } from '@/api/dash3'
 import PageHeader from '@/components/PageHeader.vue'
 import ProjetFormModal from '@/components/forms/ProjetFormModal.vue'
 import ImageUploadModal from '@/components/ImageUploadModal.vue'
@@ -76,6 +76,15 @@ const tabs = computed(() => [
 
 const badges = ref([])
 const badgesLoaded = ref(false)
+const badgeModeles = ref([])
+onMounted(async () => {
+  try {
+    const { data } = await api.get('/badge_modeles')
+    badgeModeles.value = data?.data ?? []
+  } catch {
+    badgeModeles.value = []
+  }
+})
 watch(tab, async (t) => {
   if (t !== 'badges' || badgesLoaded.value) return
   try {
@@ -149,8 +158,24 @@ async function favorite() {
 
 // ---------- Devis : création depuis le projet (la référence est calculée par Dash3) ----------
 const devisFields = [
-  { name: 'description', label: 'Description', type: 'textarea', required: true, placeholder: 'Objet du devis' },
-  { name: 'modalite', label: 'Modalités de paiement', placeholder: 'Ex : 60 % à la commande, 40 % à la livraison' },
+  {
+    name: 'description',
+    label: 'Description',
+    type: 'textarea',
+    required: true,
+    placeholder: 'Objet du devis',
+    presets: ['Fourniture, Tirage, pose et connexion', "Extraction d'images", 'Tirage de cables'],
+  },
+  {
+    name: 'modalite',
+    label: 'Modalités de paiement',
+    placeholder: 'Ex : 60 % à la commande, 40 % à la livraison',
+    presets: [
+      '60% à la commande et 40% à la livraison',
+      '100% du matériel à la commande et le reliquat à la livraison',
+      'Paiement complet avant exécution des travaux',
+    ],
+  },
   { name: 'note', label: 'Note', type: 'textarea' },
 ]
 const devisOpen = ref(false)
@@ -339,6 +364,26 @@ const progress = computed(() => {
               </RouterLink>
             </div>
           </div>
+
+          <!-- Modèles de badge -->
+          <div class="card mt-3">
+            <div class="card-header"><h3 class="card-title"><i class="ti ti-id-badge-2"></i>Modèles de badge</h3></div>
+            <div class="list-group list-group-flush">
+              <div v-if="!badgeModeles.length" class="list-group-item text-secondary">Aucun modèle de badge</div>
+              <div v-for="m in badgeModeles" :key="m.id" class="list-group-item d-flex align-items-center gap-2">
+                <span class="avatar avatar-sm rounded-2" :style="m.file ? { backgroundImage: `url(${m.file})` } : null">
+                  <i v-if="!m.file" class="ti ti-id-badge-2"></i>
+                </span>
+                <div class="min-w-0">
+                  <div class="fw-medium text-truncate">{{ m.name }}</div>
+                  <div class="text-secondary small">{{ m.badges_count }} badge(s)</div>
+                </div>
+                <a v-if="m.file" :href="m.file" target="_blank" class="btn btn-icon btn-ghost-primary ms-auto" title="Voir le modèle">
+                  <i class="ti ti-external-link"></i>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Colonne droite : onglets -->
@@ -366,12 +411,14 @@ const progress = computed(() => {
             </div>
             <div class="table-responsive">
               <table class="table table-vcenter card-table">
-                <thead><tr><th>Référence</th><th>Description</th><th>Statut</th><th class="w-1"></th></tr></thead>
+                <thead><tr><th>Référence</th><th>Description</th><th>Montant</th><th>Paiement</th><th>Statut</th><th class="w-1"></th></tr></thead>
                 <tbody>
-                  <tr v-if="!projet.invoices?.length"><td colspan="4" class="text-center text-secondary py-3">Aucun devis</td></tr>
+                  <tr v-if="!projet.invoices?.length"><td colspan="6" class="text-center text-secondary py-3">Aucun devis</td></tr>
                   <tr v-for="d in projet.invoices" :key="d.id">
                     <td class="fw-medium"><RouterLink :to="{ name: 'devis', params: { id: d.id } }">{{ d.reference }}</RouterLink></td>
                     <td class="text-secondary">{{ d.description }}</td>
+                    <td class="text-nowrap">{{ formatAmount(d.total) }}</td>
+                    <td class="text-nowrap" :title="'Date de paiement'">{{ formatDate(d.paydate) }}</td>
                     <td><span v-if="d.statut" class="badge bg-blue-lt">{{ d.statut }}</span></td>
                     <td>
                       <RouterLink :to="{ name: 'devis', params: { id: d.id } }" class="btn btn-icon btn-ghost-primary" title="Ouvrir et modifier">

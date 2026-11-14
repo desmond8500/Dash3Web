@@ -1,7 +1,8 @@
 <script setup>
 /**
  * Formulaire simple pour les marques et fournisseurs.
- * `fields` : [{ name, label, type?: 'text'|'email'|'url'|'tel'|'date'|'textarea'|'select', options?: [{ value, label }], placeholder?, default?, required?, col? }]
+ * `fields` : [{ name, label, type?: 'text'|'email'|'url'|'tel'|'date'|'textarea'|'select', options?: [{ value, label }], presets?: [string], placeholder?, default?, required?, col? }]
+ * `presets` : textes prédéfinis proposés dans un menu à côté du libellé, insérés dans le champ.
  */
 import { reactive, ref, watch } from 'vue'
 import { errorMessage } from '@/api/client'
@@ -59,7 +60,19 @@ async function onSubmit() {
   <AppModal :show="show" :title="title" :saving="saving" :can-submit="canSubmit()" :error="error" @close="emit('close')" @submit="onSubmit">
     <div class="row">
       <div v-for="f in fields" :key="f.name" :class="[f.col || 'col-12', 'mb-3']">
-        <label class="form-label" :class="{ required: f.required }">{{ f.label }}</label>
+        <label class="form-label d-flex align-items-center" :class="{ required: f.required }">
+          {{ f.label }}
+          <span v-if="f.presets?.length" class="dropdown ms-auto">
+            <button class="btn btn-sm btn-ghost-secondary dropdown-toggle py-0" type="button" data-bs-toggle="dropdown">
+              Textes
+            </button>
+            <div class="dropdown-menu dropdown-menu-end">
+              <button v-for="t in f.presets" :key="t" type="button" class="dropdown-item text-wrap" style="max-width: 320px" @click="insertPreset(f, t)">
+                {{ t }}
+              </button>
+            </div>
+          </span>
+        </label>
         <textarea v-if="f.type === 'textarea'" v-model="values[f.name]" class="form-control" rows="4" :placeholder="f.placeholder"></textarea>
         <select v-else-if="f.type === 'select'" v-model="values[f.name]" class="form-select" :required="f.required">
           <option v-if="!f.required" value="">—</option>

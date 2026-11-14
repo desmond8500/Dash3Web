@@ -244,3 +244,14 @@ export const duplicateEquipement = async (id) => (await api.post(`/equipements/$
 export const listIcons = async () => (await api.get('/icons')).data?.data ?? []
 export const saveIcon = (payload, id) => (id ? api.put(`/icons/${id}`, payload) : api.post('/icons', payload))
 export const deleteIcon = (id) => api.delete(`/icons/${id}`)
+
+// ---------- Article : liens et documents ----------
+export const addArticleLink = async (id, payload) => (await api.post(`/items/${id}/links`, payload)).data?.data
+export const deleteArticleLink = (linkId) => api.delete(`/items_link/${linkId}`)
+export async function uploadArticleDocument(id, file, name = '') {
+  const form = new FormData()
+  form.append('file', file)
+  if (name) form.append('name', name)
+  return (await api.post(`/items/${id}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
+}
+export const deleteArticleDocument = (docId) => api.delete(`/items_document/${docId}`)

@@ -73,7 +73,12 @@ async function onImage() {
   await load()
 }
 
-async function quickTabler(i, cls) {
+async function quickTabler(i, cls, ev) {
+  // Referme le menu : les boutons de la grille ne sont pas des .dropdown-item,
+  // Bootstrap ne le ferme donc pas tout seul
+  const menu = ev?.target?.closest('.dropdown-menu')
+  menu?.classList.remove('show')
+  menu?.parentElement?.querySelector('[data-bs-toggle]')?.classList.remove('show')
   try {
     await saveIcon({ tabler: cls }, i.id)
     i.tabler = cls
@@ -121,7 +126,7 @@ async function quickTabler(i, cls) {
               <div class="dropdown">
                 <button class="btn btn-sm" type="button" data-bs-toggle="dropdown"><i class="ti ti-icons"></i> Choisir</button>
                 <div class="dropdown-menu icon-grid p-2">
-                  <button v-for="c in SUGGESTIONS" :key="c" type="button" class="btn btn-icon btn-ghost-secondary" :title="c" @click="quickTabler(i, c)">
+                  <button v-for="c in SUGGESTIONS" :key="c" type="button" class="btn btn-icon btn-ghost-secondary" :title="c" @click="quickTabler(i, c, $event)">
                     <i :class="['ti', c]"></i>
                   </button>
                 </div>

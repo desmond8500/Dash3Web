@@ -12,7 +12,11 @@ import {
   adjustArticleQuantity,
   adjustDependance,
   articleDependances,
+  addArticleLink,
   articleDocuments,
+  deleteArticleDocument,
+  deleteArticleLink,
+  uploadArticleDocument,
   articleImages,
   articleLinks,
   articleTypes,
@@ -109,9 +113,64 @@ async function addTag(name = tagName.value) {
     error.value = errorMessage(e)
   }
 }
+/** Suggestions filtrées par la saisie : « Ajouter un filtre pour l'ajout des tags » */
+const filteredTypes = computed(() => {
+  const q = tagName.value.trim().toLowerCase()
+  const used = (article.value?.tags ?? []).map((t) => String(t).toLowerCase())
+  return allTypes.value.filter((t) => !used.includes(String(t.name).toLowerCase()) && (!q || String(t.name).toLowerCase().includes(q)))
+})
+
 async function removeTag(name) {
   try {
     article.value.tags = await detachArticleTag(article.value.id, name)
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+
+// ---------- Liens : ajout, suppression ----------
+const linkOpen = ref(false)
+const linkFields = [
+  { name: 'name', label: 'Nom', required: true, placeholder: 'Fiche technique' },
+  { name: 'link', label: 'URL', type: 'url', required: true, placeholder: 'https://…' },
+]
+const submitLink = (v) => addArticleLink(article.value.id, v)
+async function onLinkSaved() {
+  linkOpen.value = false
+  links.value = await articleLinks(id.value).catch(() => links.value)
+}
+async function removeLink(l) {
+  if (!confirm(`Supprimer le lien « ${l.name} » ?`)) return
+  try {
+    await deleteArticleLink(l.id)
+    links.value = links.value.filter((x) => x.id !== l.id)
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+
+// ---------- Documents : ajout, suppression ----------
+const docInput = ref(null)
+const docUploading = ref(false)
+async function onDocuments(e) {
+  const files = Array.from(e.target.files || [])
+  e.target.value = ''
+  if (!files.length) return
+  docUploading.value = true
+  for (const f of files) {
+    try {
+      documents.value.unshift(await uploadArticleDocument(article.value.id, f))
+    } catch (err) {
+      error.value = `${f.name} : ${errorMessage(err)}`
+    }
+  }
+  docUploading.value = false
+}
+async function removeDocument(d) {
+  if (!confirm(`Supprimer le document « ${d.name} » ?`)) return
+  try {
+    await deleteArticleDocument(d.id)
+    documents.value = documents.value.filter((x) => x.id !== d.id)
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -367,12 +426,22 @@ async function removeDep(dep) {
             <!-- Documents -->
             <div class="col-md-6">
               <div class="card h-100">
-                <div class="card-header"><div class="card-title">Documents</div></div>
+                <div class="card-header">
+                  <div class="card-title">Documents</div>
+                  <button class="btn btn-sm btn-ghost-primary ms-auto" :disabled="docUploading" @click="docInput.click()">
+                    <span v-if="docUploading" class="spinner-border spinner-border-sm me-1"></span>
+                    <i v-else class="ti ti-plus"></i> Ajouter
+                  </button>
+                  <input ref="docInput" type="file" multiple hidden @change="onDocuments" />
+                </div>
                 <div class="list-group list-group-flush">
                   <div v-if="!documents.length" class="list-group-item text-secondary small">Aucun document</div>
-                  <a v-for="d in documents" :key="d.id" :href="d.folder" target="_blank" rel="noopener" class="list-group-item list-group-item-action">
-                    <i class="ti ti-file-text me-1"></i>{{ d.name }}
-                  </a>
+                  <div v-for="d in documents" :key="d.id" class="list-group-item d-flex align-items-center">
+                    <a :href="d.folder" target="_blank" rel="noopener" class="text-reset text-truncate">
+                      <i class="ti ti-file-text me-1"></i>{{ d.name }}
+                    </a>
+                    <button class="btn btn-icon btn-ghost-danger ms-auto" title="Supprimer" @click="removeDocument(d)"><i class="ti ti-trash"></i></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -380,12 +449,18 @@ async function removeDep(dep) {
             <!-- Liens -->
             <div class="col-md-6">
               <div class="card h-100">
-                <div class="card-header"><div class="card-title">Liens</div></div>
+                <div class="card-header">
+                  <div class="card-title">Liens</div>
+                  <button class="btn btn-sm btn-ghost-primary ms-auto" @click="linkOpen = true"><i class="ti ti-plus"></i> Ajouter</button>
+                </div>
                 <div class="list-group list-group-flush">
                   <div v-if="!links.length" class="list-group-item text-secondary small">Aucun lien</div>
-                  <a v-for="l in links" :key="l.id" :href="l.link" target="_blank" rel="noopener" class="list-group-item list-group-item-action">
-                    <i class="ti ti-link me-1"></i>{{ l.name }}
-                  </a>
+                  <div v-for="l in links" :key="l.id" class="list-group-item d-flex align-items-center">
+                    <a :href="l.link" target="_blank" rel="noopener" class="text-reset text-truncate">
+                      <i class="ti ti-link me-1"></i>{{ l.name }}
+                    </a>
+                    <button class="btn btn-icon btn-ghost-danger ms-auto" title="Supprimer" @click="removeLink(l)"><i class="ti ti-trash"></i></button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -442,9 +517,13 @@ async function removeDep(dep) {
       </div>
     </div>
     <div class="mt-2">
-      <a v-for="t in allTypes" :key="t.id" class="badge bg-primary text-white mb-1 me-1 cursor-pointer" @click="addTag(t.name)">{{ t.name }}</a>
+      <a v-for="t in filteredTypes" :key="t.id" class="badge bg-primary text-white mb-1 me-1 cursor-pointer" @click="addTag(t.name)">{{ t.name }}</a>
+      <span v-if="!filteredTypes.length" class="text-secondary small">Aucun tag correspondant — Entrée pour créer « {{ tagName }} »</span>
     </div>
   </AppModal>
+
+  <!-- Lien : ajout -->
+  <NamedFormModal :show="linkOpen" title="Ajouter un lien" :fields="linkFields" :submit="submitLink" @close="linkOpen = false" @saved="onLinkSaved" />
 
   <!-- Articles associés : recherche -->
   <AppModal :show="depOpen" title="Ajouter un article" size="modal-lg" submit-label="Fermer" @close="depOpen = false" @submit="depOpen = false">

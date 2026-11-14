@@ -4,7 +4,8 @@
  * filtres à gauche (recherche, marques, fournisseurs, priorités), cartes à droite,
  * affichage grille ou liste.
  */
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import { PRIORITIES, articleTypes, deleteArticle, listBrands, listProviders, orderArticle, saveBrand, saveProvider } from '@/api/dash3'
 import { usePaginatedList } from '@/composables/usePaginatedList'
@@ -14,8 +15,25 @@ import ArticleCard from '@/components/cards/ArticleCard.vue'
 import ArticleFormModal from '@/components/forms/ArticleFormModal.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 
-const params = reactive({ per_page: 18, brand_id: undefined, provider_id: undefined, priority_id: undefined, type: undefined })
+const route = useRoute()
+const router = useRouter()
+// Filtres gardés dans l'URL : ils survivent au rechargement et au retour arrière
+const fromQuery = (k) => (route.query[k] ? Number(route.query[k]) || undefined : undefined)
+const params = reactive({
+  per_page: 18,
+  brand_id: fromQuery('brand_id'),
+  provider_id: fromQuery('provider_id'),
+  priority_id: fromQuery('priority_id'),
+  type: route.query.type || undefined,
+})
 const { items, page, lastPage, total, search, loading, error, load } = usePaginatedList('/items', params)
+watch(
+  () => [params.brand_id, params.provider_id, params.priority_id, params.type],
+  () => {
+    if (route.name !== 'articles') return
+    router.replace({ query: { ...route.query, brand_id: params.brand_id, provider_id: params.provider_id, priority_id: params.priority_id, type: params.type } })
+  },
+)
 
 const brands = ref([])
 const providers = ref([])
@@ -45,6 +63,16 @@ function resetFilter() {
   search.value = ''
   load(1)
 }
+
+// Étiquettes des filtres actifs, retirables d'un clic
+const activeFilters = computed(() =>
+  [
+    params.brand_id && { key: 'brand_id', label: brands.value.find((b) => b.id === params.brand_id)?.name || 'Marque', icon: 'ti-brand-cake' },
+    params.provider_id && { key: 'provider_id', label: providers.value.find((p) => p.id === params.provider_id)?.name || 'Fournisseur', icon: 'ti-building' },
+    params.priority_id && { key: 'priority_id', label: PRIORITIES.find((p) => p.id === params.priority_id)?.name || 'Priorité', icon: 'ti-flag' },
+    params.type && { key: 'type', label: params.type, icon: 'ti-tag' },
+  ].filter(Boolean),
+)
 
 // ---------- Affichage ----------
 const card = ref('col-md-6 col-xl-4')
@@ -220,6 +248,15 @@ async function afterQuickAdd() {
 
         <!-- Articles -->
         <div class="col-md-9 col-xl-10">
+          <!-- Filtres actifs -->
+          <div v-if="activeFilters.length" class="d-flex align-items-center flex-wrap gap-1 mb-2">
+            <span class="text-secondary small me-1">Filtres :</span>
+            <button v-for="f in activeFilters" :key="f.key" class="btn btn-sm btn-pill btn-primary" :title="'Retirer ce filtre'" @click="setFilter(f.key, params[f.key])">
+              <i :class="['ti me-1', f.icon]"></i>{{ f.label }}
+              <i class="ti ti-x ms-1"></i>
+            </button>
+            <button class="btn btn-sm btn-pill btn-ghost-secondary" @click="resetFilter">Tout effacer</button>
+          </div>
           <div v-if="loading" class="text-center py-5"><div class="spinner-border text-secondary"></div></div>
           <div v-else-if="!items.length" class="empty">
             <div class="empty-icon"><i class="ti ti-package-off" style="font-size: 3rem"></i></div>
@@ -237,6 +274,7 @@ async function afterQuickAdd() {
                   @delete="remove"
                   @brand="setFilter('brand_id', $event)"
                   @provider="setFilter('provider_id', $event)"
+                  @tag="setFilter('type', $event)"
                 />
               </div>
             </div>
