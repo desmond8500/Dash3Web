@@ -6,9 +6,10 @@
 import { computed, markRaw, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute } from 'vue-router'
 import { errorMessage } from '@/api/client'
-import { getInstallations, getProjet, planFile, planMarkers, savePlanMarkers } from '@/api/dash3'
+import { duplicateEquipement, getInstallations, getProjet, planFile, planMarkers, savePlanMarkers } from '@/api/dash3'
 import { PALETTE, exportAnnotatedPdf, loadPlan, pageSize, renderPage } from '@/utils/planRender'
 import PageHeader from '@/components/PageHeader.vue'
+import EquipementFormModal from '@/components/forms/EquipementFormModal.vue'
 
 const route = useRoute()
 const projetId = computed(() => route.params.id)
@@ -55,6 +56,8 @@ async function load() {
       return
     }
     markers.value = (m.markers || []).map((x) => ({ uid: uid(), equipement_id: x.equipement_id, page: x.page || 1, x: x.x, y: x.y, label: x.label, color: x.color }))
+    // Emplacements de ce plan au chargement : le reste (placed - initial) est posé sur d'autres plans
+    initialCount.value = countBy(markers.value)
     const blob = await planFile(planId.value, m.plan.kind === 'dwg' ? 'pdf' : null)
     doc.value = markRaw(await loadPlan(blob))
     await nextTick()
@@ -79,13 +82,24 @@ const equipIndex = computed(() => {
   const map = new Map()
   for (const s of systemes.value) {
     for (const e of s.base_equipements || []) {
-      map.set(e.id, { ...e, systeme: s.name, color: s.color, base: true })
-      for (const c of e.children || []) map.set(c.id, { ...c, systeme: s.name, color: s.color, base: false, parentName: e.name })
+      map.set(e.id, { ...e, systeme: s.name, systemeId: s.id, color: e.icon?.color || s.color, base: true, parentObj: null })
+      for (const c of e.children || []) map.set(c.id, { ...c, systeme: s.name, systemeId: s.id, color: c.icon?.color || s.color, base: false, parentName: e.name, parentObj: e })
     }
   }
   return map
 })
-const placedCount = (eid) => markers.value.filter((m) => m.equipement_id === eid).length
+const countBy = (list) => list.reduce((acc, m) => (m.equipement_id ? ((acc[m.equipement_id] = (acc[m.equipement_id] || 0) + 1), acc) : acc), {})
+const initialCount = ref({})
+const placedHere = computed(() => countBy(markers.value))
+const placedCount = (eid) => placedHere.value[eid] || 0
+/** Décompte synchronisé : posés sur tous les plans / quantité prévue */
+const totalPlaced = (e) => Math.max(0, (e.placed || 0) - (initialCount.value[e.id] || 0)) + placedCount(e.id)
+const remaining = (e) => Math.max(0, (e.quantite || 1) - totalPlaced(e))
+const counterClass = (e) => (remaining(e) === 0 ? 'bg-green-lt' : totalPlaced(e) ? 'bg-yellow-lt' : 'bg-secondary-lt')
+
+async function reloadTree() {
+  tree.value = await getInstallations(projetId.value)
+}
 
 // ---------- Rendu ----------
 const size = ref({ width: 0, height: 0 })
@@ -115,12 +129,19 @@ onMounted(() => window.addEventListener('resize', onResize))
 onBeforeUnmount(() => window.removeEventListener('resize', onResize))
 
 // ---------- Numérotation (ordre de placement) ----------
-const numbered = computed(() =>
-  markers.value.map((m, i) => {
+const numbered = computed(() => {
+  const seen = {}
+  return markers.value.map((m, i) => {
     const e = m.equipement_id ? equipIndex.value.get(m.equipement_id) : null
-    return { ...m, number: i + 1, color: m.color || e?.color || PALETTE[9], label: m.label || e?.name || '', equip: e }
-  }),
-)
+    let label = m.label || e?.name || ''
+    // Équipements identiques fusionnés : « Caméra 2/4 »
+    if (e && !m.label && (e.quantite || 1) > 1) {
+      seen[e.id] = (seen[e.id] || 0) + 1
+      label = `${e.name} ${seen[e.id]}/${Math.max(e.quantite, totalPlaced(e))}`
+    }
+    return { ...m, number: i + 1, color: m.color || e?.color || PALETTE[9], label, equip: e, icon: e?.icon?.tabler || null }
+  })
+})
 const pageMarkers = computed(() => numbered.value.filter((m) => (m.page || 1) === page.value))
 
 // ---------- Placement ----------
@@ -154,7 +175,20 @@ function onStageClick(ev) {
   markers.value.push(m)
   selected.value = m.uid
   dirty.value = true
-  if (tool.value.free) tool.value = null // un repère libre à la fois
+  if (tool.value.free) {
+    tool.value = null // un repère libre à la fois
+    return
+  }
+  // Décompte au fur et à mesure : l'outil s'arrête quand tous les exemplaires sont posés
+  const e = equipIndex.value.get(m.equipement_id)
+  if (e && remaining(e) === 0) {
+    const over = totalPlaced(e) - (e.quantite || 1)
+    notice.value = over > 0
+      ? `${e.name} : ${totalPlaced(e)} posés pour ${e.quantite || 1} prévus, la quantité sera portée à ${totalPlaced(e)} à l'enregistrement.`
+      : `${e.name} : tous les exemplaires sont posés.`
+    setTimeout(() => (notice.value = ''), 4000)
+    if (over === 0) tool.value = null
+  }
 }
 
 // Déplacement à la souris / au doigt
@@ -197,6 +231,82 @@ function onKey(ev) {
 }
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+// ---------- Clic droit sur un repère : modifier, dupliquer ----------
+const ctx = ref(null) // { uid, x, y }
+function openContext(m, ev) {
+  selected.value = m.uid
+  const r = area.value.getBoundingClientRect()
+  ctx.value = { uid: m.uid, x: ev.clientX - r.left + area.value.scrollLeft, y: ev.clientY - r.top + area.value.scrollTop }
+}
+const closeContext = () => (ctx.value = null)
+onMounted(() => window.addEventListener('click', closeContext))
+onBeforeUnmount(() => window.removeEventListener('click', closeContext))
+const ctxMarker = computed(() => numbered.value.find((m) => m.uid === ctx.value?.uid))
+
+const equipFormOpen = ref(false)
+const equipEditing = ref(null)
+function ctxEdit() {
+  const m = ctxMarker.value
+  closeContext()
+  if (!m) return
+  if (m.equip) {
+    equipEditing.value = m.equip
+    equipFormOpen.value = true
+    return
+  }
+  const label = prompt('Libellé du repère :', m.label || '')
+  if (label === null) return
+  const target = markers.value.find((x) => x.uid === m.uid)
+  target.label = label.trim()
+  dirty.value = true
+}
+async function onEquipSaved() {
+  equipFormOpen.value = false
+  try {
+    await reloadTree()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+const offset = (v) => Math.min(1, v + 0.02)
+/** Dupliquer le repère : un exemplaire de plus du même équipement, posé à côté */
+function ctxDuplicateMarker() {
+  const m = markers.value.find((x) => x.uid === ctx.value?.uid)
+  closeContext()
+  if (!m) return
+  const copy = { ...m, uid: uid(), x: offset(m.x), y: offset(m.y) }
+  markers.value.push(copy)
+  selected.value = copy.uid
+  dirty.value = true
+}
+/** Dupliquer l'équipement : nouvel équipement (copie, avec ses rattachés), posé à côté */
+async function ctxDuplicateEquipement() {
+  const m = markers.value.find((x) => x.uid === ctx.value?.uid)
+  closeContext()
+  if (!m?.equipement_id) return
+  try {
+    const copy = await duplicateEquipement(m.equipement_id)
+    await reloadTree()
+    const n = { uid: uid(), page: m.page, x: offset(m.x), y: offset(m.y), equipement_id: copy.id, label: null, color: null }
+    markers.value.push(n)
+    selected.value = n.uid
+    dirty.value = true
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+function ctxRemove() {
+  selected.value = ctx.value?.uid
+  closeContext()
+  removeSelected()
+}
+const editStages = computed(() => {
+  const e = equipEditing.value
+  if (!e || !tree.value) return []
+  const b = tree.value.buildings.find((x) => (x.systemes || []).some((s) => s.id === e.systemeId))
+  return b?.stages ?? []
+})
 
 // ---------- Enregistrement ----------
 async function save() {
@@ -317,20 +427,25 @@ const breadcrumbs = computed(() => [
             <div class="card-body p-2 side-list">
               <div v-if="tool" class="alert alert-info py-2 mb-2 small">
                 Cliquez sur le plan pour placer
-                <b>{{ tool.free ? tool.label || 'le repère' : equipIndex.get(tool.equipement_id)?.name }}</b>.
+                <b>{{ tool.free ? tool.label || 'le repère' : equipIndex.get(tool.equipement_id)?.name }}</b>
+                <template v-if="!tool.free && equipIndex.get(tool.equipement_id)"> — reste {{ remaining(equipIndex.get(tool.equipement_id)) }}</template>.
                 <a href="#" @click.prevent="tool = null">Terminer</a>
               </div>
               <div v-if="!systemes.length" class="text-secondary small">Aucun équipement : ajoutez-en dans l'onglet Installations.</div>
               <div v-for="s in systemes" :key="s.id" class="mb-2">
                 <div class="small fw-bold mb-1"><span class="dot" :style="{ background: s.color }"></span>{{ s.name }} <span class="text-secondary fw-normal">· {{ s.building }}</span></div>
                 <template v-for="e in s.base_equipements" :key="e.id">
-                  <button class="equip-btn" :class="{ active: tool?.equipement_id === e.id }" @click="pick(e)">
-                    <i class="ti ti-server"></i>{{ e.name }}
-                    <span v-if="placedCount(e.id)" class="badge bg-secondary-lt ms-auto">{{ placedCount(e.id) }}</span>
-                  </button>
-                  <button v-for="c in e.children" :key="c.id" class="equip-btn child" :class="{ active: tool?.equipement_id === c.id }" @click="pick(c)">
-                    <i class="ti ti-device-cctv"></i>{{ c.name }}
-                    <span v-if="placedCount(c.id)" class="badge bg-secondary-lt ms-auto">{{ placedCount(c.id) }}</span>
+                  <button
+                    v-for="(item, level) in [e, ...(e.children || [])]"
+                    :key="item.id"
+                    class="equip-btn"
+                    :class="{ active: tool?.equipement_id === item.id, child: level > 0, done: remaining(item) === 0 }"
+                    :title="`${totalPlaced(item)} posé(s) sur ${item.quantite || 1} — reste ${remaining(item)}`"
+                    @click="pick(item)"
+                  >
+                    <i :class="['ti', item.icon?.tabler || (level ? 'ti-device-cctv' : 'ti-server')]" :style="item.icon?.color ? { color: item.icon.color } : null"></i>
+                    <span class="text-truncate">{{ item.name }}</span>
+                    <span class="badge ms-auto" :class="counterClass(item)">{{ totalPlaced(item) }}/{{ item.quantite || 1 }}</span>
                   </button>
                 </template>
               </div>
@@ -377,12 +492,28 @@ const breadcrumbs = computed(() => [
                   :class="{ selected: m.uid === selected }"
                   :style="{ left: m.x * 100 + '%', top: m.y * 100 + '%', background: m.color }"
                   :title="m.label"
-                  @pointerdown="startDrag(m, $event)"
+                  @pointerdown.left="startDrag(m, $event)"
                   @click.stop="selected = m.uid"
+                  @contextmenu.prevent.stop="openContext(m, $event)"
                 >
-                  {{ m.number }}
-                  <span v-if="m.label" class="marker-label">{{ m.label }}</span>
+                  <i v-if="m.icon" :class="['ti', m.icon]"></i>
+                  <span v-else>{{ m.number }}</span>
+                  <span v-if="m.label" class="marker-label">{{ m.icon ? `${m.number}. ` : '' }}{{ m.label }}</span>
                 </div>
+              </div>
+
+              <!-- Menu contextuel du repère -->
+              <div v-if="ctxMarker" class="dropdown-menu show ctx-menu" :style="{ left: ctx.x + 'px', top: ctx.y + 'px' }" @click.stop>
+                <span class="dropdown-header">{{ ctxMarker.number }}. {{ ctxMarker.label || 'Repère' }}</span>
+                <button class="dropdown-item" type="button" @click="ctxEdit"><i class="ti ti-edit me-2"></i>Modifier</button>
+                <button class="dropdown-item" type="button" @click="ctxDuplicateMarker">
+                  <i class="ti ti-copy me-2"></i>Dupliquer<span v-if="ctxMarker.equip" class="text-secondary small ms-1">(même équipement)</span>
+                </button>
+                <button v-if="ctxMarker.equip" class="dropdown-item" type="button" @click="ctxDuplicateEquipement">
+                  <i class="ti ti-copy-plus me-2"></i>Dupliquer l'équipement
+                </button>
+                <div class="dropdown-divider"></div>
+                <button class="dropdown-item text-danger" type="button" @click="ctxRemove"><i class="ti ti-trash me-2"></i>Retirer du plan</button>
               </div>
             </div>
 
@@ -393,17 +524,29 @@ const breadcrumbs = computed(() => [
               <button class="btn btn-sm btn-outline-danger ms-auto" @click="removeSelected"><i class="ti ti-trash"></i> Retirer du plan</button>
             </div>
             <div v-else class="card-footer small text-secondary">
-              Choisissez un équipement à gauche puis cliquez sur le plan. Glissez un repère pour le déplacer, Suppr pour le retirer, Échap pour arrêter.
+              Choisissez un équipement à gauche puis cliquez sur le plan (le décompte indique posés / prévus). Glissez un repère pour le déplacer,
+              clic droit pour le modifier ou le dupliquer, Suppr pour le retirer, Échap pour arrêter.
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <EquipementFormModal
+    :show="equipFormOpen"
+    :equipement="equipEditing"
+    :systeme-id="equipEditing?.systemeId ?? null"
+    :parent="equipEditing?.parentObj ?? null"
+    :stages="editStages"
+    @close="equipFormOpen = false"
+    @saved="onEquipSaved"
+  />
 </template>
 
 <style scoped>
 .plan-area {
+  position: relative;
   overflow: auto;
   max-height: calc(100vh - 260px);
   min-height: 300px;
@@ -485,6 +628,13 @@ const breadcrumbs = computed(() => [
 }
 .equip-btn.child {
   padding-left: 22px;
+}
+.equip-btn.done {
+  opacity: 0.6;
+}
+.ctx-menu {
+  position: absolute;
+  z-index: 10;
 }
 .dot {
   display: inline-block;

@@ -232,3 +232,15 @@ export const formatSize = (bytes) => {
   while (n >= 1024 && i < u.length - 1) { n /= 1024; i++ }
   return `${n.toFixed(i ? 1 : 0)} ${u[i]}`
 }
+
+// ---------- Bâtiment : niveaux, locaux, équipements ; icônes ----------
+export const getBuilding = async (id) => (await api.get(`/buildings/${id}`)).data?.data
+export const saveStage = (payload, id) => (id ? api.put(`/stages/${id}`, payload) : api.post('/stages', payload))
+export const deleteStage = (id) => api.delete(`/stages/${id}`)
+export const saveRoom = (payload, id) => (id ? api.put(`/rooms/${id}`, payload) : api.post('/rooms', payload))
+export const deleteRoom = (id) => api.delete(`/rooms/${id}`)
+export const duplicateEquipement = async (id) => (await api.post(`/equipements/${id}/duplicate`)).data?.data
+
+export const listIcons = async () => (await api.get('/icons')).data?.data ?? []
+export const saveIcon = (payload, id) => (id ? api.put(`/icons/${id}`, payload) : api.post('/icons', payload))
+export const deleteIcon = (id) => api.delete(`/icons/${id}`)

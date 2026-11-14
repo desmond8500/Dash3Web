@@ -31,6 +31,7 @@ const menus = [
       { name: 'Achats', route: 'achats', icon: 'ti-shopping-cart' },
       { name: 'Marques', route: 'marques', icon: 'ti-brand-cake' },
       { name: 'Fournisseurs', route: 'fournisseurs', icon: 'ti-building' },
+      { name: 'Icônes', route: 'icones', icon: 'ti-icons' },
     ],
   },
   {

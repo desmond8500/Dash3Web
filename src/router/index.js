@@ -35,6 +35,12 @@ const routes = [
         meta: { section: 'clients' },
       },
       {
+        path: 'projets/:id/batiments/:buildingId',
+        name: 'batiment',
+        component: () => import('@/pages/BuildingPage.vue'),
+        meta: { section: 'clients' },
+      },
+      {
         path: 'projets/:id/plans/:planId',
         name: 'plan',
         component: () => import('@/pages/PlanEditorPage.vue'),
@@ -50,6 +56,7 @@ const routes = [
       { path: 'stock/articles', name: 'articles', component: () => import('@/pages/stock/ArticlesPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Articles' }] } },
       { path: 'stock/articles/:id', name: 'article', component: () => import('@/pages/stock/ArticlePage.vue'), meta: { section: 'articles' } },
       { path: 'stock/achats', name: 'achats', component: () => import('@/pages/stock/AchatsPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Achats' }] } },
+      { path: 'stock/icones', name: 'icones', component: () => import('@/pages/stock/IconsPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Icônes' }] } },
       { path: 'stock/marques', name: 'marques', component: () => import('@/pages/stock/BrandsPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Marques' }] } },
       { path: 'stock/fournisseurs', name: 'fournisseurs', component: () => import('@/pages/stock/ProvidersPage.vue'), meta: { breadcrumbs: [{ name: 'Stock' }, { name: 'Fournisseurs' }] } },
 
