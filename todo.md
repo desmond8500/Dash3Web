@@ -6,36 +6,46 @@ Front End Dash3
 
 ## Autre
 
-- [] ne fais pas de pull request sur ce repo, fais un push directement
-- [] Bouton pour aller en haut de la page
-- [] le navbar met le en sticky
-- [] ajoute un breadcrumb dans le page-header
 - [] pour les class="avatar" ajouter "rounded-2"
-- [] créer un logo pour l'application, 
+- [] créer un logo pour l'application,
+- [x] ne fais pas de pull request sur ce repo, fais un push directement
+- [x] Bouton pour aller en haut de la page
+- [x] le navbar met le en sticky
+- [x] ajoute un breadcrumb dans le page-header
 
 ## Tableau de bord
 
-- [] ajouter un champ de recherche qui filtre les clients, les projets et les devis
-- [] Afficher le planning de la semaine (section à developper plus tard)
-- [] Afficher la date du jour
-- [] Sur la navbar afficher
-  - [] ERP
-    - [] Clients
-    - [] Documents
-    - [] Equipe
-  - [] Stock
-    - [] Articles
-    - [] Achats
-    - [] Marques
-    - [] Fournisseurs
-  - [] Comptabilité
-    - Bilan Mensuel
-  
+- [x] ajouter un champ de recherche qui filtre les clients, les projets et les devis
+- [x] Afficher le planning de la semaine (section à developper plus tard) : jours de la semaine affichés, contenu à venir
+- [x] Afficher la date du jour
+- [x] Sur la navbar afficher
+  - [x] ERP
+    - [x] Clients
+    - [x] Documents (page « à venir »)
+    - [x] Equipe (page « à venir »)
+  - [x] Stock
+    - [x] Articles
+    - [x] Achats
+    - [x] Marques
+    - [x] Fournisseurs
+  - [x] Comptabilité
+    - [x] Bilan Mensuel
+
 ## Paramètres
 
-- [] Profil de l'utilisateur
-- [] CVs de l'utilisateur (a venir)
+- [x] Profil de l'utilisateur
+- [x] CVs de l'utilisateur (a venir) : entrée du menu et page « à venir »
+
+## Page clients
+
+- [] lister les clients sous forme de carte,
+- [] possibilité d'éditer et de supprimer et mettre en favoris
 
 ## Page Projets
 
-- [] lister les projets sous forme de carte, utiliser le modèle "todo\client card.png"
+- [] lister les projets sous forme de carte,
+- [] possibilité d'éditer et de supprimer et mettre en favoris
+
+## Page Projet
+
+- [] garder la meme interrface que dans dash3
