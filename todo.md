@@ -54,7 +54,7 @@ Front End Dash3
 - [x] onglet Badges
 - [ ] onglet Documents (à venir)
 - [x] onglet Installations : bâtiments, systèmes, équipements de base et secondaires, import de plans
-- [ ] placer les équipements sur les plans et exporter en PDF (étape 2)
+- [x] placer les équipements sur les plans et exporter en PDF (étape 2) ; DWG convertis en PDF sur le serveur
 - [x] Editer les notes et supprimer (+ ajout)
 
 ## Page devis

@@ -150,3 +150,13 @@ export async function uploadPlan(projetId, file, buildingId = null, name = '') {
   return (await api.post('/plans', fd)).data?.data
 }
 export const deletePlan = (id) => api.delete(`/plans/${id}`)
+
+// ---------- Plans : éditeur et export ----------
+/** Fichier du plan servi par l'API (blob) ; variant 'pdf' = PDF converti d'un DWG */
+export async function planFile(planId, variant = null) {
+  const { data } = await api.get(`/plans/${planId}/file`, { params: { variant: variant || undefined }, responseType: 'blob' })
+  return data
+}
+export const planMarkers = async (planId) => (await api.get(`/plans/${planId}/markers`)).data?.data
+export const savePlanMarkers = async (planId, markers) => (await api.put(`/plans/${planId}/markers`, { markers })).data?.data
+export const convertPlan = (planId) => api.post(`/plans/${planId}/convert`)

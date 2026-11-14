@@ -9,6 +9,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { errorMessage } from '@/api/client'
 import {
+  convertPlan,
   deleteBuilding,
   deleteEquipement,
   deleteInstallationSysteme,
@@ -164,6 +165,17 @@ function removePlan(p) {
   if (!confirm(`Supprimer le plan « ${p.name} » ?`)) return
   run(() => deletePlan(p.id))
 }
+async function retryConvert(p) {
+  try {
+    await convertPlan(p.id)
+    plans.value = await listPlans(props.projetId)
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+const convLabel = (p) =>
+  ({ pending: 'Conversion en attente', processing: 'Conversion en cours', done: 'Converti en PDF', failed: 'Conversion échouée' })[p.conversion_status] || 'Non converti'
+const convClass = (p) => ({ done: 'bg-green-lt', failed: 'bg-red-lt' })[p.conversion_status] || 'bg-yellow-lt'
 const planIcon = (k) => ({ pdf: 'ti-file-type-pdf', dwg: 'ti-file-unknown', image: 'ti-photo' })[k] || 'ti-file'
 const buildingName = (id) => data.value?.buildings.find((b) => b.id === id)?.name
 </script>
@@ -294,10 +306,19 @@ const buildingName = (id) => data.value?.buildings.find((b) => b.id === id)?.nam
               <a :href="p.url" target="_blank" rel="noopener" class="fw-medium">{{ p.name }}</a>
               <div class="text-secondary small">
                 {{ p.kind.toUpperCase() }}<span v-if="p.building_id"> · {{ buildingName(p.building_id) }}</span>
-                <span v-if="p.kind === 'dwg'"> · à exporter en PDF pour l'annoter</span>
+                <span v-if="p.markers_count"> · {{ p.markers_count }} repère(s)</span>
+              </div>
+              <div v-if="p.kind === 'dwg' && p.conversion_status === 'failed' && p.conversion_error" class="text-danger small text-truncate" :title="p.conversion_error">
+                {{ p.conversion_error }}
               </div>
             </div>
-            <span class="badge bg-yellow-lt" title="Placement des équipements : prochaine étape">Placement à venir</span>
+            <span v-if="p.kind === 'dwg'" class="badge" :class="convClass(p)">{{ convLabel(p) }}</span>
+            <button v-if="p.kind === 'dwg' && p.conversion_status !== 'done'" class="btn btn-sm" title="Relancer la conversion" @click="retryConvert(p)">
+              <i class="ti ti-refresh"></i>
+            </button>
+            <RouterLink v-if="p.viewable" class="btn btn-sm btn-primary" :to="{ name: 'plan', params: { id: projetId, planId: p.id } }">
+              <i class="ti ti-map-pin"></i> Placer les équipements
+            </RouterLink>
             <button class="btn btn-sm btn-ghost-danger btn-icon" title="Supprimer" @click="removePlan(p)"><i class="ti ti-trash"></i></button>
           </div>
         </div>

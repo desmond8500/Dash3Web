@@ -34,6 +34,12 @@ const routes = [
         component: () => import('@/pages/ProjetPage.vue'),
         meta: { section: 'clients' },
       },
+      {
+        path: 'projets/:id/plans/:planId',
+        name: 'plan',
+        component: () => import('@/pages/PlanEditorPage.vue'),
+        meta: { section: 'clients' },
+      },
       { path: 'taches', name: 'taches', component: () => import('@/pages/TasksPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Tâches' }] } },
       { path: 'documents', name: 'documents', component: ComingSoon, meta: { title: 'Documents', icon: 'ti-file', breadcrumbs: [{ name: 'ERP' }, { name: 'Documents' }] } },
       { path: 'equipe', name: 'equipe', component: ComingSoon, meta: { title: 'Équipe', icon: 'ti-users-group', breadcrumbs: [{ name: 'ERP' }, { name: 'Équipe' }] } },
