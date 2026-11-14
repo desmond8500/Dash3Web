@@ -84,7 +84,7 @@ function shift(delta) {
           <div class="card card-sm">
             <div class="card-body">
               <div class="row align-items-center">
-                <div class="col-auto"><span :class="['text-white avatar', c.color]"><i :class="['ti', c.icon]"></i></span></div>
+                <div class="col-auto"><span :class="['text-white avatar rounded-2', c.color]"><i :class="['ti', c.icon]"></i></span></div>
                 <div class="col">
                   <div class="text-secondary small">{{ c.label }}</div>
                   <div class="h3 m-0">{{ formatAmount(c.value) }}</div>

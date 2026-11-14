@@ -92,7 +92,7 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
         <div class="col-12">
           <div class="card">
             <div class="card-body d-flex flex-wrap align-items-center gap-3">
-              <span class="avatar avatar-md bg-primary-lt"><i class="ti ti-calendar-event fs-2"></i></span>
+              <span class="avatar rounded-2 avatar-md bg-primary-lt"><i class="ti ti-calendar-event fs-2"></i></span>
               <div>
                 <div class="text-secondary small">Aujourd'hui</div>
                 <div class="h3 m-0">{{ todayCapitalized }}</div>
@@ -138,7 +138,7 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
                       <RouterLink
                         v-for="p in s.items"
                         :key="p.id"
-                        :to="{ name: 'projets', query: { client_id: p.client_id } }"
+                        :to="{ name: 'projet', params: { id: p.id } }"
                         class="list-group-item list-group-item-action px-0"
                       >
                         <div class="fw-medium">{{ p.name }}</div>
@@ -170,7 +170,7 @@ const noResult = computed(() => sections.value.length && sections.value.every((s
             <div class="card-body">
               <div class="row align-items-center">
                 <div class="col-auto">
-                  <span :class="['text-white avatar', s.color]"><i :class="['ti', s.icon]"></i></span>
+                  <span :class="['text-white avatar rounded-2', s.color]"><i :class="['ti', s.icon]"></i></span>
                 </div>
                 <div class="col">
                   <div class="fw-medium">{{ s.label }}</div>

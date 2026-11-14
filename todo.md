@@ -6,13 +6,14 @@ Front End Dash3
 
 ## Autre
 
-- [] pour les class="avatar" ajouter "rounded-2"
-- [] créer un logo pour l'application,
+- [x] pour les class="avatar" ajouter "rounded-2"
+- [x] créer un logo pour l'application (public/logo.svg : navbar, connexion, favicon)
 - [x] ne fais pas de pull request sur ce repo, fais un push directement
 - [x] Bouton pour aller en haut de la page
 - [x] le navbar met le en sticky
 - [x] ajoute un breadcrumb dans le page-header
-- [] ajoute les api manquantes au fur et à mesure rapelle moi de mettre à jour le dash3
+- [ ] ajoute les api manquantes au fur et à mesure rapelle moi de mettre à jour le dash3
+  - à fusionner puis déployer : desmond8500/Dash3 PR #4 (cartes clients/projets, favoris, logos, filtres articles, tâches d'un client)
 
 ## Tableau de bord
 
@@ -39,26 +40,29 @@ Front End Dash3
 
 ## Page clients
 
-- [] lister les clients sous forme de carte,
-- [] possibilité d'éditer et de supprimer et mettre en favoris
+- [x] lister les clients sous forme de carte,
+- [x] possibilité d'éditer et de supprimer et mettre en favoris (+ logo)
 
 ## Page Projets
 
-- [] lister les projets sous forme de carte,
-- [] possibilité d'éditer et de supprimer et mettre en favoris
+- [x] lister les projets sous forme de carte,
+- [x] possibilité d'éditer et de supprimer et mettre en favoris
+- [ ] onglet Contacts du client (API à créer)
 
 ## Page Projet
 
-- [] garder la meme interrface que dans dash3
+- [x] garder la meme interrface que dans dash3
+- [ ] onglets Badges, Documents, Installations (API à créer)
 
 ## Page articles
 
-- [] garder la meme interrface que dans dash3
+- [x] garder la meme interrface que dans dash3
+- [ ] filtre Types et action Commander (API à créer)
 
 ## Page marques
 
-- [] garder la meme interrface que dans dash3
+- [x] garder la meme interrface que dans dash3
 
 ## Page fournisseurs
 
-- [] garder la meme interrface que dans dash3
+- [x] garder la meme interrface que dans dash3

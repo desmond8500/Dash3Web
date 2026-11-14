@@ -28,6 +28,12 @@ const routes = [
         component: () => import('@/pages/ProjetsPage.vue'),
         meta: { section: 'clients', breadcrumbs: [{ name: 'ERP' }, { name: 'Clients', to: { name: 'clients' } }, { name: 'Projets' }] },
       },
+      {
+        path: 'projets/:id',
+        name: 'projet',
+        component: () => import('@/pages/ProjetPage.vue'),
+        meta: { section: 'clients' },
+      },
       { path: 'taches', name: 'taches', component: () => import('@/pages/TasksPage.vue'), meta: { breadcrumbs: [{ name: 'ERP' }, { name: 'Tâches' }] } },
       { path: 'documents', name: 'documents', component: ComingSoon, meta: { title: 'Documents', icon: 'ti-file', breadcrumbs: [{ name: 'ERP' }, { name: 'Documents' }] } },
       { path: 'equipe', name: 'equipe', component: ComingSoon, meta: { title: 'Équipe', icon: 'ti-users-group', breadcrumbs: [{ name: 'ERP' }, { name: 'Équipe' }] } },

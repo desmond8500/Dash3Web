@@ -59,3 +59,48 @@ export const formatAmount = (n) =>
   n === null || n === undefined || n === '' ? '—' : new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(Number(n)) + ' F'
 
 export const formatDate = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '—')
+
+// ---------- Écriture (formulaires des pages ERP / Stock) ----------
+
+/** Envoie une image (multipart, champ « image ») vers un endpoint de logo / avatar */
+export async function uploadImage(endpoint, file) {
+  const fd = new FormData()
+  fd.append('image', file)
+  const { data } = await api.post(endpoint, fd)
+  return data?.data
+}
+
+// Clients
+export const getClient = async (id) => (await api.get(`/clients/${id}`)).data?.data
+export const saveClient = async (payload, id) => (id ? api.put(`/clients/${id}`, payload) : api.post('/clients', payload))
+export const deleteClient = (id) => api.delete(`/clients/${id}`)
+export const toggleClientFavorite = (id) => api.post(`/clients/${id}/favorite`)
+export const clientTasks = async (id) => (await api.get(`/clients_tasks/${id}`)).data?.data ?? []
+
+// Projets
+export const getProjet = async (id) => (await api.get(`/projets/${id}`)).data?.data
+export const saveProjet = async (payload, id) => (id ? api.put(`/projets/${id}`, payload) : api.post('/projets', payload))
+export const deleteProjet = (id) => api.delete(`/projets/${id}`)
+export const toggleProjetFavorite = (id) => api.post(`/projets/${id}/favorite`)
+
+// Articles
+export const saveArticle = async (payload, id) => (id ? api.put(`/items/${id}`, payload) : api.post('/items', payload))
+export const deleteArticle = (id) => api.delete(`/items/${id}`)
+
+// Marques / fournisseurs
+export const saveBrand = async (payload, id) => (id ? api.put(`/brands/${id}`, payload) : api.post('/brands', payload))
+export const deleteBrand = (id) => api.delete(`/brands/${id}`)
+export const saveProvider = async (payload, id) => (id ? api.put(`/providers/${id}`, payload) : api.post('/providers', payload))
+export const deleteProvider = (id) => api.delete(`/providers/${id}`)
+
+/** Catégories d'articles (priority_id), comme dans le modèle Article de Dash3 */
+export const PRIORITIES = [
+  { id: 0, name: 'Centrale 1' },
+  { id: 1, name: 'Centrale 2' },
+  { id: 2, name: 'Organe 1' },
+  { id: 3, name: 'Organe 2' },
+  { id: 4, name: 'Organe 3' },
+  { id: 5, name: 'Câble' },
+  { id: 6, name: 'Accessoires' },
+  { id: 7, name: 'Forfait' },
+]

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Dash3">
+  <title>Dash3</title>
+  <!-- Fond : carré arrondi bleu Tabler -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0054a6"/>
+  <!-- Barres de tableau de bord croissantes -->
+  <rect x="13" y="34" width="8" height="16" rx="2" fill="#ffffff" opacity="0.55"/>
+  <rect x="25" y="26" width="8" height="24" rx="2" fill="#ffffff" opacity="0.75"/>
+  <rect x="37" y="18" width="8" height="32" rx="2" fill="#ffffff"/>
+  <!-- Point de tendance : le « 3 » de Dash3 -->
+  <circle cx="50" cy="14" r="5" fill="#4dabf7"/>
+  <path d="M14 30 L29 20 L41 13 L50 14" fill="none" stroke="#4dabf7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

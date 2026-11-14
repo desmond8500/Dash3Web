@@ -40,7 +40,7 @@ async function logout() {
           <div class="card">
             <div class="card-body p-4 text-center">
               <span
-                class="avatar avatar-xl mb-3 rounded"
+                class="avatar rounded-2 avatar-xl mb-3"
                 :style="auth.user?.avatar ? { backgroundImage: `url(${auth.user.avatar})` } : null"
               >
                 <i v-if="!auth.user?.avatar" class="ti ti-user" style="font-size: 2rem"></i>

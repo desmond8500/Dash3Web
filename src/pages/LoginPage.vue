@@ -33,6 +33,7 @@ async function submit() {
   <div class="page page-center">
     <div class="container container-tight py-4">
       <div class="text-center mb-4">
+        <img src="/logo.svg" alt="" width="64" height="64" class="mb-2" />
         <h1 class="h1 fw-bold">Dash3</h1>
       </div>
       <div class="card card-md">

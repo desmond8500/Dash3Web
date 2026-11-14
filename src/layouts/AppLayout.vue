@@ -73,7 +73,10 @@ async function logout() {
         </button>
 
         <div class="navbar-brand navbar-brand-autodark d-none-navbar-horizontal pe-0 pe-md-3">
-          <RouterLink :to="{ name: 'dashboard' }">Dash3</RouterLink>
+          <RouterLink :to="{ name: 'dashboard' }" class="d-flex align-items-center gap-2 text-reset text-decoration-none">
+            <img src="/logo.svg" alt="" width="32" height="32" class="navbar-brand-image" />
+            <span class="fw-bold">Dash3</span>
+          </RouterLink>
         </div>
 
         <!-- Menu utilisateur -->
