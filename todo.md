@@ -18,6 +18,8 @@ Front End Dash3
 ## Page CV
 
 - [x] Programmer la page CV
+- [ ] creer une pafe de détail de cv
+- [ ] personnaliser les cv
 
 ## Page Icones
 
