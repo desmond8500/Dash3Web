@@ -9,6 +9,9 @@ import { useRoute } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import {
   addIntervenant,
+  attachJournalDevis,
+  detachJournalDevis,
+  journalDevisOptions,
   deleteJournalImage,
   deleteJournalSection,
   formatDate,
@@ -183,6 +186,44 @@ async function removePhoto(s, img) {
   }
 }
 
+// ---------- Devis rattachés ----------
+const devisOpen = ref(false)
+const devisOptions = ref([])
+const pickedDevis = ref('')
+const devisSaving = ref(false)
+async function openDevis() {
+  pickedDevis.value = ''
+  devisOpen.value = true
+  try {
+    const liees = new Set((journal.value.invoices ?? []).map((d) => d.id))
+    devisOptions.value = (await journalDevisOptions(id.value)).filter((d) => !liees.has(d.id))
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+async function addDevis() {
+  if (!pickedDevis.value) return
+  devisSaving.value = true
+  try {
+    await attachJournalDevis(id.value, Number(pickedDevis.value))
+    devisOpen.value = false
+    await load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    devisSaving.value = false
+  }
+}
+async function removeDevis(d) {
+  if (!confirm(`Détacher le devis ${d.reference} de ce journal ?`)) return
+  try {
+    await detachJournalDevis(id.value, d.id)
+    await load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+
 const viewer = ref(null)
 </script>
 
@@ -261,13 +302,22 @@ const viewer = ref(null)
           </div>
 
           <div class="card">
-            <div class="card-header"><h3 class="card-title"><i class="ti ti-file-invoice text-primary"></i>Devis</h3></div>
+            <div class="card-header">
+              <h3 class="card-title"><i class="ti ti-file-invoice text-primary"></i>Devis</h3>
+              <button class="btn btn-sm btn-ghost-primary ms-auto" @click="openDevis"><i class="ti ti-plus"></i> Lier</button>
+            </div>
             <div class="list-group list-group-flush">
-              <RouterLink v-if="journal.invoice" :to="{ name: 'devis', params: { id: journal.invoice.id } }" class="list-group-item list-group-item-action">
-                <div class="fw-medium">{{ journal.invoice.reference }}</div>
-                <div class="text-secondary small">{{ journal.invoice.description }}</div>
-              </RouterLink>
-              <div v-else class="list-group-item text-secondary small">Aucun devis associé</div>
+              <div v-if="!journal.invoices?.length" class="list-group-item text-secondary small">Aucun devis rattaché</div>
+              <div v-for="d in journal.invoices" :key="d.id" class="list-group-item d-flex align-items-center">
+                <RouterLink :to="{ name: 'devis', params: { id: d.id } }" class="min-w-0 text-reset">
+                  <div class="fw-medium">
+                    {{ d.reference }}
+                    <span v-if="d.statut" class="badge bg-blue-lt ms-1">{{ d.statut }}</span>
+                  </div>
+                  <div class="text-secondary small text-truncate">{{ d.description }}</div>
+                </RouterLink>
+                <button class="btn btn-icon btn-ghost-danger ms-auto" title="Détacher" @click="removeDevis(d)"><i class="ti ti-unlink"></i></button>
+              </div>
             </div>
           </div>
         </div>
@@ -374,6 +424,22 @@ const viewer = ref(null)
         </option>
       </optgroup>
     </select>
+  </AppModal>
+
+  <AppModal
+    :show="devisOpen"
+    title="Lier un devis"
+    :saving="devisSaving"
+    :can-submit="!!pickedDevis"
+    submit-label="Lier"
+    @close="devisOpen = false"
+    @submit="addDevis"
+  >
+    <select v-model="pickedDevis" class="form-select">
+      <option value="">—</option>
+      <option v-for="d in devisOptions" :key="d.id" :value="d.id">{{ d.reference }} — {{ d.description }}</option>
+    </select>
+    <div v-if="!devisOptions.length" class="form-hint mt-2">Aucun autre devis sur ce projet.</div>
   </AppModal>
 
   <AppModal :show="!!viewer" title="Photo" size="modal-lg" hide-footer @close="viewer = null">
