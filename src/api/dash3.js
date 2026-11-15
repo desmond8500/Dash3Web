@@ -283,5 +283,19 @@ export const deleteJournalImage = (id) => api.delete(`/journal_images/${id}`)
 
 // ---------- CV ----------
 export const listCvs = async () => (await api.get('/cvs')).data?.data ?? []
+export const getCv = async (id) => (await api.get(`/cvs/${id}`)).data?.data
 export const saveCv = (payload, id) => (id ? api.put(`/cvs/${id}`, payload) : api.post('/cvs', payload))
 export const deleteCv = (id) => api.delete(`/cvs/${id}`)
+export const saveCvSection = (payload, id) => (id ? api.put(`/cv_sections/${id}`, payload) : api.post('/cv_sections', payload))
+export const deleteCvSection = (id) => api.delete(`/cv_sections/${id}`)
+export const saveCvItem = (payload, id) => (id ? api.put(`/cv_items/${id}`, payload) : api.post('/cv_items', payload))
+export const deleteCvItem = (id) => api.delete(`/cv_items/${id}`)
+
+/** Types de section proposés, avec leur icône */
+export const CV_SECTION_TYPES = [
+  { value: 'experience', label: 'Expériences', icon: 'ti-briefcase' },
+  { value: 'formation', label: 'Formations', icon: 'ti-school' },
+  { value: 'competence', label: 'Compétences', icon: 'ti-stars' },
+  { value: 'langue', label: 'Langues', icon: 'ti-language' },
+  { value: 'libre', label: 'Section libre', icon: 'ti-list' },
+]

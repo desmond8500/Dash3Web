@@ -1,6 +1,7 @@
 <script setup>
 /** Page Mes CV : création, renommage et suppression des CV de l'utilisateur connecté. */
 import { onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import { deleteCv, formatDate, listCvs, saveCv } from '@/api/dash3'
 import { useAuthStore } from '@/stores/auth'
@@ -8,6 +9,7 @@ import PageHeader from '@/components/PageHeader.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 
 const auth = useAuthStore()
+const router = useRouter()
 const cvs = ref([])
 const loading = ref(true)
 const error = ref('')
@@ -32,9 +34,18 @@ function edit(cv = null) {
   editing.value = cv
   open.value = true
 }
-const submit = (v) => saveCv(v, editing.value?.id)
+let created = null
+const submit = async (v) => {
+  const { data } = await saveCv(v, editing.value?.id)
+  created = editing.value ? null : data?.data
+}
 async function onSaved() {
   open.value = false
+  // Un nouveau CV s'ouvre directement pour être rempli
+  if (created?.id) {
+    router.push({ name: 'cv', params: { id: created.id } })
+    return
+  }
   await load()
 }
 async function remove(cv) {
@@ -73,12 +84,16 @@ async function remove(cv) {
             <div class="card-body d-flex align-items-center gap-2">
               <span class="avatar avatar-md rounded-2 bg-primary-lt"><i class="ti ti-file-cv" style="font-size: 1.5rem"></i></span>
               <div class="min-w-0">
-                <div class="fw-bold text-truncate">{{ cv.name }}</div>
-                <div class="text-secondary small">{{ auth.displayName }} · créé le {{ formatDate(cv.created_at) }}</div>
+                <RouterLink :to="{ name: 'cv', params: { id: cv.id } }" class="fw-bold text-truncate text-reset d-block">{{ cv.name }}</RouterLink>
+                <div class="text-secondary small">
+                  {{ cv.title || auth.displayName }} · {{ cv.sections_count ?? 0 }} section(s)
+                </div>
+                <div class="text-secondary small">créé le {{ formatDate(cv.created_at) }}</div>
               </div>
             </div>
             <div class="card-footer d-flex py-2">
-              <button class="btn btn-sm" @click="edit(cv)"><i class="ti ti-edit"></i> Renommer</button>
+              <RouterLink class="btn btn-sm btn-primary" :to="{ name: 'cv', params: { id: cv.id } }"><i class="ti ti-arrow-right"></i> Ouvrir</RouterLink>
+              <button class="btn btn-sm ms-1" @click="edit(cv)"><i class="ti ti-edit"></i> Renommer</button>
               <button class="btn btn-sm btn-ghost-danger ms-auto" @click="remove(cv)"><i class="ti ti-trash"></i></button>
             </div>
           </div>
