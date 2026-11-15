@@ -283,6 +283,7 @@ export async function uploadSectionImages(sectionId, files) {
   return (await api.post(`/journal_sections/${sectionId}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
 }
 export const deleteJournalImage = (id) => api.delete(`/journal_images/${id}`)
+export const captionJournalImage = (id, caption) => api.put(`/journal_images/${id}`, { caption })
 
 // ---------- CV ----------
 export const listCvs = async () => (await api.get('/cvs')).data?.data ?? []

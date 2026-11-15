@@ -9,6 +9,7 @@ import { useRoute } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import {
   addIntervenant,
+  captionJournalImage,
   attachJournalDevis,
   detachJournalDevis,
   journalDevisOptions,
@@ -176,6 +177,18 @@ async function onPhotos(ev) {
     uploadingFor.value = null
   }
 }
+/** Légende affichée sous la photo, reprise dans le rapport PDF */
+async function editCaption(img) {
+  const caption = prompt('Légende de la photo :', img.caption || '')
+  if (caption === null) return
+  try {
+    await captionJournalImage(img.id, caption.trim())
+    img.caption = caption.trim()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+
 async function removePhoto(s, img) {
   if (!confirm('Supprimer cette photo ?')) return
   try {
@@ -348,10 +361,20 @@ const viewer = ref(null)
             <!-- eslint-disable-next-line vue/no-v-html -- renderMarkdown échappe le texte avant le rendu -->
             <div v-if="s.description" class="card-body md-body" v-html="renderMarkdown(s.description)"></div>
             <div v-if="s.images?.length" class="card-body pt-0">
-              <div class="photos">
-                <div v-for="img in s.images" :key="img.id" class="photo">
-                  <img :src="img.url" alt="" loading="lazy" @click="viewer = img.url" />
-                  <button class="btn btn-icon btn-sm photo-del" title="Supprimer" @click="removePhoto(s, img)"><i class="ti ti-trash"></i></button>
+              <div class="row g-2">
+                <div v-for="img in s.images" :key="img.id" class="col-6 col-md-3">
+                  <div class="card card-sm h-100">
+                    <img :src="img.url" :alt="img.caption || ''" class="card-img-top photo-img" loading="lazy" @click="viewer = img.url" />
+                    <div class="card-body p-1 d-flex align-items-center">
+                      <div class="small text-truncate" :class="{ 'text-secondary fst-italic': !img.caption }" :title="img.caption">
+                        {{ img.caption || 'Sans légende' }}
+                      </div>
+                      <div class="ms-auto btn-list flex-nowrap">
+                        <button class="btn btn-sm btn-icon" title="Légende" @click="editCaption(img)"><i class="ti ti-text-caption"></i></button>
+                        <button class="btn btn-sm btn-icon btn-ghost-danger" title="Supprimer" @click="removePhoto(s, img)"><i class="ti ti-trash"></i></button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -454,33 +477,9 @@ const viewer = ref(null)
 .md-body :deep(p:last-child) {
   margin-bottom: 0;
 }
-.photos {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.photo {
-  position: relative;
-  width: 110px;
-  height: 110px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: var(--tblr-bg-surface-secondary);
-}
-.photo img {
-  width: 100%;
-  height: 100%;
+.photo-img {
+  height: 130px;
   object-fit: cover;
   cursor: zoom-in;
-}
-.photo-del {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.photo:hover .photo-del {
-  opacity: 1;
 }
 </style>
