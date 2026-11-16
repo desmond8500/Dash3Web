@@ -1,4 +1,5 @@
 import api, { errorMessage, normalizeList } from '@/api/client'
+import { markImageEdited } from '@/utils/imageVersions'
 
 // ---------- Recherche globale ----------
 
@@ -61,6 +62,27 @@ export const formatAmount = (n) =>
 export const formatDate = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '—')
 
 // ---------- Écriture (formulaires des pages ERP / Stock) ----------
+
+// ---------- Édition d'images (rogner, pivoter, redimensionner) ----------
+
+/** Dimensions d'une image déjà enregistrée (path = URL affichée ou « storage/… ») */
+export async function imageInfo(path) {
+  const { data } = await api.get('/images/info', { params: { path } })
+  return data?.data
+}
+
+/**
+ * Modifie une image enregistrée sur le serveur.
+ * ops : { rotate, flip_h, flip_v, crop: {x,y,width,height}, resize: {width,height}, quality }
+ * mode : 'replace' (écrase, les liens restent valables) | 'copy' (nouveau fichier à côté)
+ * Renvoie { path, url, width, height, size, version }
+ */
+export async function editImage(path, ops, mode = 'replace') {
+  const { data } = await api.post('/images/edit', { path, ...ops, mode })
+  const result = data?.data
+  if (result?.path) markImageEdited(result.path, result.version)
+  return result
+}
 
 /** Envoie une image (multipart, champ « image ») vers un endpoint de logo / avatar */
 export async function uploadImage(endpoint, file) {

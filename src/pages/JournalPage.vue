@@ -26,6 +26,7 @@ import {
 import { renderMarkdown } from '@/utils/markdown'
 import PageHeader from '@/components/PageHeader.vue'
 import AppModal from '@/components/AppModal.vue'
+import ImageEditModal from '@/components/ImageEditModal.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 import MarkdownEditor from '@/components/erp/MarkdownEditor.vue'
 import TaskList from '@/components/erp/TaskList.vue'
@@ -238,6 +239,13 @@ async function removeDevis(d) {
 }
 
 const viewer = ref(null)
+
+// Retouche d'une photo (rogner, pivoter, redimensionner)
+const editingPhoto = ref(null)
+async function onPhotoEdited() {
+  editingPhoto.value = null
+  await load()
+}
 </script>
 
 <template>
@@ -371,6 +379,7 @@ const viewer = ref(null)
                       </div>
                       <div class="ms-auto btn-list flex-nowrap">
                         <button class="btn btn-sm btn-icon" title="Légende" @click="editCaption(img)"><i class="ti ti-text-caption"></i></button>
+                        <button class="btn btn-sm btn-icon" title="Rogner / redimensionner" @click="editingPhoto = img"><i class="ti ti-crop"></i></button>
                         <button class="btn btn-sm btn-icon btn-ghost-danger" title="Supprimer" @click="removePhoto(s, img)"><i class="ti ti-trash"></i></button>
                       </div>
                     </div>
@@ -464,6 +473,8 @@ const viewer = ref(null)
     </select>
     <div v-if="!devisOptions.length" class="form-hint mt-2">Aucun autre devis sur ce projet.</div>
   </AppModal>
+
+  <ImageEditModal :show="!!editingPhoto" :src="editingPhoto?.url" title="Modifier la photo" @close="editingPhoto = null" @saved="onPhotoEdited" />
 
   <AppModal :show="!!viewer" title="Photo" size="modal-lg" hide-footer @close="viewer = null">
     <img v-if="viewer" :src="viewer" alt="" class="img-fluid rounded" />

@@ -34,6 +34,7 @@ import {
 } from '@/api/dash3'
 import PageHeader from '@/components/PageHeader.vue'
 import AppModal from '@/components/AppModal.vue'
+import ImageEditModal from '@/components/ImageEditModal.vue'
 import ArticleFormModal from '@/components/forms/ArticleFormModal.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
 
@@ -196,6 +197,18 @@ async function setDefault(img) {
     const { data } = await setArticleDefaultImage(article.value.id, img.path)
     article.value.image = data?.data?.image ?? img.image
     images.value = images.value.map((i) => ({ ...i, is_default: i.path === img.path }))
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
+}
+// Retouche d'une image (rogner, pivoter, redimensionner)
+const editingImage = ref(null)
+async function onImageEdited() {
+  editingImage.value = null
+  try {
+    const [imgs, art] = await Promise.all([articleImages(id.value), getArticle(id.value)])
+    images.value = imgs
+    article.value = art
   } catch (e) {
     error.value = errorMessage(e)
   }
@@ -414,6 +427,7 @@ async function removeDep(dep) {
                         </a>
                         <div class="d-flex justify-content-evenly mt-1">
                           <button class="btn btn-sm btn-ghost-danger btn-icon rounded" title="Supprimer l'image" @click="deleteImage(img)"><i class="ti ti-trash"></i></button>
+                          <button class="btn btn-sm btn-ghost-secondary btn-icon rounded" title="Rogner / redimensionner" @click="editingImage = img"><i class="ti ti-crop"></i></button>
                           <button class="btn btn-sm btn-icon rounded" :class="img.is_default ? 'btn-success' : 'btn-ghost-primary'" title="Définir comme image par défaut" @click="setDefault(img)"><i class="ti ti-photo"></i></button>
                         </div>
                       </div>
@@ -540,6 +554,8 @@ async function removeDep(dep) {
       </button>
     </div>
   </AppModal>
+
+  <ImageEditModal :show="!!editingImage" :src="editingImage?.image" title="Modifier l'image de l'article" allow-copy @close="editingImage = null" @saved="onImageEdited" />
 
   <NamedFormModal :show="brandOpen" title="Ajouter une marque" :fields="brandFields" :submit="(v) => saveBrand(v)" @close="brandOpen = false" @saved="brandOpen = false" />
   <NamedFormModal :show="providerOpen" title="Ajouter un fournisseur" :fields="providerFields" :submit="(v) => saveProvider(v)" @close="providerOpen = false" @saved="providerOpen = false" />
