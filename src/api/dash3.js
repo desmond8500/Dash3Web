@@ -227,18 +227,21 @@ export const deleteJournal = (id) => api.delete(`/journaux/${id}`)
 export const createDevis = async (payload) => (await api.post('/invoices', payload)).data?.data
 
 export const projetDocuments = async (projetId) => (await api.get(`/projets/${projetId}/documents`)).data?.data ?? []
-export async function uploadProjetDocument(projetId, file, name = '') {
+export async function uploadProjetDocument(projetId, file, name = '', category = '') {
   const form = new FormData()
   form.append('projet_id', projetId)
   form.append('file', file)
   if (name) form.append('name', name)
+  if (category) form.append('category', category)
   return (await api.post('/projet_documents', form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
 }
 export const renameProjetDocument = (id, name) => api.put(`/projet_documents/${id}`, { name })
+export const updateProjetDocument = async (id, payload) => (await api.put(`/projet_documents/${id}`, payload)).data?.data
 export const deleteProjetDocument = (id) => api.delete(`/projet_documents/${id}`)
 /** Téléchargement via l'API (jeton Bearer) puis enregistrement côté navigateur */
-export async function downloadProjetDocument(doc) {
-  const { data } = await api.get(`/projet_documents/${doc.id}/file`, { responseType: 'blob' })
+export const downloadProjetDocument = (doc) => downloadDocument(`/projet_documents/${doc.id}/file`, doc)
+export async function downloadDocument(endpoint, doc) {
+  const { data } = await api.get(endpoint, { responseType: 'blob' })
   const url = URL.createObjectURL(data)
   const a = document.createElement('a')
   a.href = url
@@ -312,6 +315,7 @@ export const listCvs = async () => (await api.get('/cvs')).data?.data ?? []
 export const getCv = async (id) => (await api.get(`/cvs/${id}`)).data?.data
 export const saveCv = (payload, id) => (id ? api.put(`/cvs/${id}`, payload) : api.post('/cvs', payload))
 export const deleteCv = (id) => api.delete(`/cvs/${id}`)
+export const duplicateCv = async (id, name = '') => (await api.post(`/cvs/${id}/duplicate`, name ? { name } : {})).data?.data
 export const saveCvSection = (payload, id) => (id ? api.put(`/cv_sections/${id}`, payload) : api.post('/cv_sections', payload))
 export const deleteCvSection = (id) => api.delete(`/cv_sections/${id}`)
 export const saveCvItem = (payload, id) => (id ? api.put(`/cv_items/${id}`, payload) : api.post('/cv_items', payload))
@@ -325,3 +329,41 @@ export const CV_SECTION_TYPES = [
   { value: 'langue', label: 'Langues', icon: 'ti-language' },
   { value: 'libre', label: 'Section libre', icon: 'ti-list' },
 ]
+
+/** Catégories proposées pour les documents (projets et fournisseurs) */
+export const DOCUMENT_CATEGORIES = [
+  { value: 'catalogue', label: 'Catalogue', icon: 'ti-book' },
+  { value: 'flyer', label: 'Flyer', icon: 'ti-file-description' },
+  { value: 'plan_acces', label: "Plan d'accès / adresse", icon: 'ti-map-2' },
+  { value: 'fiche_technique', label: 'Fiche technique', icon: 'ti-file-settings' },
+  { value: 'contrat', label: 'Contrat', icon: 'ti-file-certificate' },
+  { value: 'photo', label: 'Photo', icon: 'ti-photo' },
+  { value: 'autre', label: 'Autre', icon: 'ti-file' },
+]
+
+// ---------- Localisation (projets, fournisseurs) ----------
+export const saveProjetLocation = async (id, payload) => (await api.put(`/projets/${id}/location`, payload)).data?.data
+
+// ---------- Badges ----------
+export const badgeModeles = async (clientId = null) =>
+  (await api.get('/badge_modeles', { params: { client_id: clientId || undefined } })).data?.data ?? []
+export const saveBadgeModele = async (payload, id) => (await (id ? api.put(`/badge_modeles/${id}`, payload) : api.post('/badge_modeles', payload))).data?.data
+export const deleteBadgeModele = (id) => api.delete(`/badge_modeles/${id}`)
+export const saveBadge = async (payload, id) => (await (id ? api.put(`/badges/${id}`, payload) : api.post('/badges', payload))).data?.data
+export const deleteBadge = (id) => api.delete(`/badges/${id}`)
+
+// ---------- Fournisseur : documents et liens ----------
+export const providerDocuments = async (id) => (await api.get(`/providers/${id}/documents`)).data?.data ?? []
+export async function uploadProviderDocument(id, file, name = '', category = '') {
+  const form = new FormData()
+  form.append('file', file)
+  if (name) form.append('name', name)
+  if (category) form.append('category', category)
+  return (await api.post(`/providers/${id}/documents`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
+}
+export const updateProviderDocument = async (docId, payload) => (await api.put(`/provider_documents/${docId}`, payload)).data?.data
+export const deleteProviderDocument = (docId) => api.delete(`/provider_documents/${docId}`)
+export const downloadProviderDocument = (doc) => downloadDocument(`/provider_documents/${doc.id}/file`, doc)
+export const saveProviderLink = async (providerId, payload, linkId) =>
+  (await (linkId ? api.put(`/provider_links/${linkId}`, payload) : api.post(`/providers/${providerId}/links`, payload))).data?.data
+export const deleteProviderLink = (linkId) => api.delete(`/provider_links/${linkId}`)

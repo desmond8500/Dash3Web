@@ -10,7 +10,6 @@ import api, { errorMessage, normalizeList } from '@/api/client'
 import {
   addArticleDependance,
   adjustArticleQuantity,
-  adjustDependance,
   articleDependances,
   addArticleLink,
   articleDocuments,
@@ -287,15 +286,8 @@ async function addDep(a) {
     error.value = errorMessage(e)
   }
 }
-async function changeDep(dep, delta) {
-  try {
-    const { data } = await adjustDependance(dep.id, delta)
-    dep.quantity = data?.data?.quantity ?? dep.quantity + delta
-  } catch (e) {
-    error.value = errorMessage(e)
-  }
-}
 async function removeDep(dep) {
+  if (!confirm(`Retirer « ${dep.article?.designation} » des articles associés ?`)) return
   try {
     await removeDependance(dep.id)
     deps.value = deps.value.filter((d) => d.id !== dep.id)
@@ -449,12 +441,12 @@ async function removeDep(dep) {
                   <input ref="docInput" type="file" multiple hidden @change="onDocuments" />
                 </div>
                 <div class="list-group list-group-flush">
-                  <div v-if="!documents.length" class="list-group-item text-secondary small">Aucun document</div>
-                  <div v-for="d in documents" :key="d.id" class="list-group-item d-flex align-items-center">
+                  <div v-if="!documents.length" class="list-group-item compact-item text-secondary small">Aucun document</div>
+                  <div v-for="d in documents" :key="d.id" class="list-group-item compact-item d-flex align-items-center">
                     <a :href="d.folder" target="_blank" rel="noopener" class="text-reset text-truncate">
                       <i class="ti ti-file-text me-1"></i>{{ d.name }}
                     </a>
-                    <button class="btn btn-icon btn-ghost-danger ms-auto" title="Supprimer" @click="removeDocument(d)"><i class="ti ti-trash"></i></button>
+                    <button class="btn btn-sm btn-icon btn-ghost-danger ms-auto" title="Supprimer" @click="removeDocument(d)"><i class="ti ti-trash"></i></button>
                   </div>
                 </div>
               </div>
@@ -468,12 +460,12 @@ async function removeDep(dep) {
                   <button class="btn btn-sm btn-ghost-primary ms-auto" @click="linkOpen = true"><i class="ti ti-plus"></i> Ajouter</button>
                 </div>
                 <div class="list-group list-group-flush">
-                  <div v-if="!links.length" class="list-group-item text-secondary small">Aucun lien</div>
-                  <div v-for="l in links" :key="l.id" class="list-group-item d-flex align-items-center">
+                  <div v-if="!links.length" class="list-group-item compact-item text-secondary small">Aucun lien</div>
+                  <div v-for="l in links" :key="l.id" class="list-group-item compact-item d-flex align-items-center">
                     <a :href="l.link" target="_blank" rel="noopener" class="text-reset text-truncate">
                       <i class="ti ti-link me-1"></i>{{ l.name }}
                     </a>
-                    <button class="btn btn-icon btn-ghost-danger ms-auto" title="Supprimer" @click="removeLink(l)"><i class="ti ti-trash"></i></button>
+                    <button class="btn btn-sm btn-icon btn-ghost-danger ms-auto" title="Supprimer" @click="removeLink(l)"><i class="ti ti-trash"></i></button>
                   </div>
                 </div>
               </div>
@@ -494,22 +486,21 @@ async function removeDep(dep) {
               <div v-if="!deps.length" class="text-secondary small">Aucun article associé</div>
               <div class="row g-2">
                 <div v-for="d in deps" :key="d.id" class="col-md-3">
-                  <RouterLink :to="{ name: 'article', params: { id: d.article.id } }" class="card card-sm text-reset text-decoration-none">
-                    <div class="card-body d-flex align-items-center gap-2">
+                  <div class="card card-sm dep-card">
+                    <RouterLink :to="{ name: 'article', params: { id: d.article.id } }" class="card-body d-flex align-items-center gap-2 text-reset text-decoration-none">
                       <img :src="d.article.image" alt="" class="avatar rounded-2" style="object-fit: contain" />
                       <div class="min-w-0">
                         <div class="fw-bold text-truncate">{{ d.article.designation }}</div>
-                        <div class="text-secondary small">{{ d.article.reference }}</div>
+                        <div class="text-secondary small">
+                          {{ d.article.reference }}
+                          <span v-if="Number(d.quantity) > 1" class="badge bg-primary-lt ms-1">× {{ d.quantity }}</span>
+                        </div>
                       </div>
-                    </div>
-                  </RouterLink>
-                  <div class="d-flex justify-content-between align-items-center mt-2">
-                    <button class="btn btn-outline-danger btn-icon" title="Retirer" @click="removeDep(d)"><i class="ti ti-trash"></i></button>
-                    <div class="d-flex align-items-center">
-                      <button class="btn btn-icon btn-primary" title="Ajouter 1" @click="changeDep(d, 1)"><i class="ti ti-plus"></i></button>
-                      <div class="btn">{{ d.quantity }}</div>
-                      <button class="btn btn-icon btn-primary" title="Retirer 1" @click="changeDep(d, -1)"><i class="ti ti-minus"></i></button>
-                    </div>
+                    </RouterLink>
+                    <!-- Suppression directement sur la carte -->
+                    <button class="btn btn-sm btn-icon btn-ghost-danger dep-remove" title="Retirer l'article associé" @click="removeDep(d)">
+                      <i class="ti ti-trash"></i>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -564,6 +555,24 @@ async function removeDep(dep) {
 <style scoped>
 .pre {
   white-space: pre-line;
+}
+/* Listes des liens et documents : lignes resserrées */
+.compact-item {
+  padding: 0.2rem 0.75rem;
+  min-height: 0;
+  line-height: 1.3;
+}
+.dep-card {
+  position: relative;
+}
+.dep-card .card-body {
+  padding-right: 2.5rem;
+}
+.dep-remove {
+  position: absolute;
+  top: 50%;
+  right: 0.4rem;
+  transform: translateY(-50%);
 }
 .qty .btn {
   min-width: 28px;

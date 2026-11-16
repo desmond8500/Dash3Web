@@ -1,4 +1,5 @@
 <script setup>
+import { cssUrl } from '@/utils/cssUrl'
 /**
  * Systèmes d'un bâtiment › équipements de base › équipements secondaires.
  * Chaque équipement : article lié, icône (via les tags de l'article), local,
@@ -138,7 +139,7 @@ defineExpose({ openSysteme })
               <span
                 class="avatar rounded-2"
                 :class="[level ? 'avatar-xs' : 'avatar-sm', item.icon?.image_url ? '' : level ? 'bg-secondary-lt' : 'bg-primary-lt']"
-                :style="item.icon?.image_url ? { backgroundImage: `url(${item.icon.image_url})` } : item.icon?.color ? { color: item.icon.color } : null"
+                :style="item.icon?.image_url ? { backgroundImage: cssUrl(item.icon.image_url) } : item.icon?.color ? { color: item.icon.color } : null"
               >
                 <i v-if="!item.icon?.image_url" :class="['ti', item.icon?.tabler || (level ? 'ti-device-cctv' : 'ti-server')]"></i>
               </span>

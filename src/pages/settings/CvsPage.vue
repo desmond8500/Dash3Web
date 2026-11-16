@@ -3,7 +3,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { errorMessage } from '@/api/client'
-import { deleteCv, formatDate, listCvs, saveCv } from '@/api/dash3'
+import { deleteCv, duplicateCv, formatDate, listCvs, saveCv } from '@/api/dash3'
 import { useAuthStore } from '@/stores/auth'
 import PageHeader from '@/components/PageHeader.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
@@ -47,6 +47,14 @@ async function onSaved() {
     return
   }
   await load()
+}
+async function duplicate(cv) {
+  try {
+    await duplicateCv(cv.id)
+    await load()
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
 }
 async function remove(cv) {
   if (!confirm(`Supprimer le CV « ${cv.name} » ?`)) return
@@ -94,6 +102,7 @@ async function remove(cv) {
             <div class="card-footer d-flex py-2">
               <RouterLink class="btn btn-sm btn-primary" :to="{ name: 'cv', params: { id: cv.id } }"><i class="ti ti-arrow-right"></i> Ouvrir</RouterLink>
               <button class="btn btn-sm ms-1" @click="edit(cv)"><i class="ti ti-edit"></i> Renommer</button>
+              <button class="btn btn-sm ms-1" title="Dupliquer le CV" @click="duplicate(cv)"><i class="ti ti-copy"></i> Dupliquer</button>
               <button class="btn btn-sm btn-ghost-danger ms-auto" @click="remove(cv)"><i class="ti ti-trash"></i></button>
             </div>
           </div>

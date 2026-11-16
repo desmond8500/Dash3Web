@@ -240,6 +240,21 @@ async function removeDevis(d) {
 
 const viewer = ref(null)
 
+/** Bloc date de l'aperçu (jour, numéro, mois, année), comme la carte de journal de Dash3 */
+const dateParts = computed(() => {
+  const d = journal.value?.date ? new Date(journal.value.date) : null
+  if (!d || Number.isNaN(d.getTime())) return null
+  const cap = (x) => x.charAt(0).toUpperCase() + x.slice(1).replace('.', '')
+  return {
+    day: cap(d.toLocaleDateString('fr-FR', { weekday: 'long' })),
+    num: String(d.getDate()).padStart(2, '0'),
+    month: cap(d.toLocaleDateString('fr-FR', { month: 'short' })),
+    year: d.getFullYear(),
+  }
+})
+/** Impression (ou PDF) : seul l'aperçu est imprimé, voir styles.css */
+const printJournal = () => window.print()
+
 // Retouche d'une photo (rogner, pivoter, redimensionner)
 const editingPhoto = ref(null)
 async function onPhotoEdited() {
@@ -264,10 +279,14 @@ async function onPhotoEdited() {
       <div v-if="error" class="alert alert-danger">{{ error }}</div>
 
       <div v-if="journal" class="row g-3">
-        <!-- Informations, intervenants, devis -->
-        <div class="col-lg-4">
+        <!-- Contenu à remplir (comme la page CV) -->
+        <div class="col-lg-5 journal-editor">
+          <!-- Informations -->
           <div class="card mb-3">
-            <div class="card-header"><h3 class="card-title"><i class="ti ti-notebook text-primary"></i>Informations</h3></div>
+            <div class="card-header">
+              <h3 class="card-title"><i class="ti ti-notebook text-primary"></i>Informations</h3>
+              <button class="btn btn-sm btn-ghost-primary ms-auto" @click="formOpen = true"><i class="ti ti-edit"></i> Modifier</button>
+            </div>
             <div class="card-body">
               <div class="datagrid">
                 <div class="datagrid-item">
@@ -296,9 +315,11 @@ async function onPhotoEdited() {
                 </div>
               </div>
               <div v-if="journal.description" class="mt-3 text-secondary description">{{ journal.description }}</div>
+              <div v-else class="mt-3 text-secondary small">Aucune description. <a href="#" @click.prevent="formOpen = true">En ajouter une</a></div>
             </div>
           </div>
 
+          <!-- Intervenants -->
           <div class="card mb-3">
             <div class="card-header">
               <h3 class="card-title"><i class="ti ti-users text-primary"></i>Intervenants</h3>
@@ -306,7 +327,7 @@ async function onPhotoEdited() {
             </div>
             <div class="list-group list-group-flush">
               <div v-if="!journal.intervenants?.length" class="list-group-item text-secondary small">Aucun intervenant</div>
-              <div v-for="i in journal.intervenants" :key="i.id" class="list-group-item d-flex align-items-center gap-2">
+              <div v-for="i in journal.intervenants" :key="i.id" class="list-group-item d-flex align-items-center gap-2 py-2">
                 <span class="avatar avatar-sm rounded-circle" :class="i.team ? 'bg-azure-lt' : 'bg-primary-lt'">
                   <i :class="['ti', i.team ? 'ti-user-check' : 'ti-user']"></i>
                 </span>
@@ -315,21 +336,60 @@ async function onPhotoEdited() {
                   <div class="text-secondary small text-truncate">{{ intervenantRole(i) }}</div>
                 </div>
                 <div class="ms-auto d-flex align-items-center">
-                  <a v-if="i.contact?.phone" :href="`tel:${i.contact.phone}`" class="btn btn-icon btn-ghost-secondary" title="Appeler"><i class="ti ti-phone"></i></a>
-                  <button class="btn btn-icon btn-ghost-danger" title="Retirer" @click="dropIntervenant(i)"><i class="ti ti-x"></i></button>
+                  <a v-if="i.contact?.phone" :href="`tel:${i.contact.phone}`" class="btn btn-sm btn-icon btn-ghost-secondary" title="Appeler"><i class="ti ti-phone"></i></a>
+                  <button class="btn btn-sm btn-icon btn-ghost-danger" title="Retirer" @click="dropIntervenant(i)"><i class="ti ti-x"></i></button>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="card">
+          <!-- Sections -->
+          <div class="card mb-3">
+            <div class="card-header">
+              <h3 class="card-title"><i class="ti ti-list-details text-primary"></i>Sections</h3>
+              <button class="btn btn-sm btn-primary ms-auto" @click="openSection()"><i class="ti ti-plus"></i> Section</button>
+            </div>
+            <div class="list-group list-group-flush">
+              <div v-if="!journal.sections?.length" class="list-group-item text-secondary small">
+                Aucune section. Ajoutez-en une pour décrire l'intervention et joindre des photos.
+              </div>
+              <div v-for="s in journal.sections" :key="s.id" class="list-group-item">
+                <div class="d-flex align-items-center">
+                  <span class="fw-medium text-truncate">{{ s.name }}</span>
+                  <span class="badge bg-secondary-lt ms-2" title="Photos"><i class="ti ti-photo"></i> {{ s.images?.length || 0 }}</span>
+                  <div class="ms-auto btn-list flex-nowrap">
+                    <button class="btn btn-sm btn-icon" title="Ajouter des photos" :disabled="uploadingFor === s.id" @click="pickPhotos(s)">
+                      <span v-if="uploadingFor === s.id" class="spinner-border spinner-border-sm"></span>
+                      <i v-else class="ti ti-camera-plus"></i>
+                    </button>
+                    <button class="btn btn-sm btn-icon" title="Modifier" @click="openSection(s)"><i class="ti ti-edit"></i></button>
+                    <button class="btn btn-sm btn-icon btn-ghost-danger" title="Supprimer" @click="removeSection(s)"><i class="ti ti-trash"></i></button>
+                  </div>
+                </div>
+                <div v-if="s.description" class="text-secondary small text-truncate">{{ s.description }}</div>
+                <div v-if="s.images?.length" class="d-flex flex-wrap gap-1 mt-2">
+                  <div v-for="img in s.images" :key="img.id" class="thumb">
+                    <img :src="img.url" :alt="img.caption || ''" loading="lazy" @click="viewer = img.url" />
+                    <div class="thumb-actions">
+                      <button class="btn btn-icon" title="Légende" @click="editCaption(img)"><i class="ti ti-text-caption"></i></button>
+                      <button class="btn btn-icon" title="Rogner / redimensionner" @click="editingPhoto = img"><i class="ti ti-crop"></i></button>
+                      <button class="btn btn-icon text-danger" title="Supprimer" @click="removePhoto(s, img)"><i class="ti ti-trash"></i></button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Devis -->
+          <div class="card mb-3">
             <div class="card-header">
               <h3 class="card-title"><i class="ti ti-file-invoice text-primary"></i>Devis</h3>
               <button class="btn btn-sm btn-ghost-primary ms-auto" @click="openDevis"><i class="ti ti-plus"></i> Lier</button>
             </div>
             <div class="list-group list-group-flush">
               <div v-if="!journal.invoices?.length" class="list-group-item text-secondary small">Aucun devis rattaché</div>
-              <div v-for="d in journal.invoices" :key="d.id" class="list-group-item d-flex align-items-center">
+              <div v-for="d in journal.invoices" :key="d.id" class="list-group-item d-flex align-items-center py-2">
                 <RouterLink :to="{ name: 'devis', params: { id: d.id } }" class="min-w-0 text-reset">
                   <div class="fw-medium">
                     {{ d.reference }}
@@ -337,54 +397,7 @@ async function onPhotoEdited() {
                   </div>
                   <div class="text-secondary small text-truncate">{{ d.description }}</div>
                 </RouterLink>
-                <button class="btn btn-icon btn-ghost-danger ms-auto" title="Détacher" @click="removeDevis(d)"><i class="ti ti-unlink"></i></button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Sections et tâches -->
-        <div class="col-lg-8">
-          <div v-if="!journal.sections?.length" class="card card-body text-secondary text-center mb-3">
-            Aucune section. Ajoutez-en une pour décrire l'intervention et joindre des photos.
-          </div>
-
-          <div v-for="s in journal.sections" :key="s.id" class="card mb-3">
-            <div class="card-header">
-              <h3 class="card-title">{{ s.name }}</h3>
-              <div class="card-actions btn-list">
-                <button class="btn btn-sm" :disabled="uploadingFor === s.id" @click="pickPhotos(s)">
-                  <span v-if="uploadingFor === s.id" class="spinner-border spinner-border-sm me-1"></span>
-                  <i v-else class="ti ti-camera"></i> Photos
-                </button>
-                <div class="dropdown">
-                  <button class="btn btn-sm btn-action" type="button" data-bs-toggle="dropdown" aria-label="Actions"><i class="ti ti-dots-vertical"></i></button>
-                  <div class="dropdown-menu dropdown-menu-end">
-                    <button class="dropdown-item" type="button" @click="openSection(s)"><i class="ti ti-edit me-1"></i> Modifier</button>
-                    <button class="dropdown-item text-danger" type="button" @click="removeSection(s)"><i class="ti ti-trash me-1"></i> Supprimer</button>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <!-- eslint-disable-next-line vue/no-v-html -- renderMarkdown échappe le texte avant le rendu -->
-            <div v-if="s.description" class="card-body md-body" v-html="renderMarkdown(s.description)"></div>
-            <div v-if="s.images?.length" class="card-body pt-0">
-              <div class="row g-2">
-                <div v-for="img in s.images" :key="img.id" class="col-6 col-md-3">
-                  <div class="card card-sm h-100">
-                    <img :src="img.url" :alt="img.caption || ''" class="card-img-top photo-img" loading="lazy" @click="viewer = img.url" />
-                    <div class="card-body p-1 d-flex align-items-center">
-                      <div class="small text-truncate" :class="{ 'text-secondary fst-italic': !img.caption }" :title="img.caption">
-                        {{ img.caption || 'Sans légende' }}
-                      </div>
-                      <div class="ms-auto btn-list flex-nowrap">
-                        <button class="btn btn-sm btn-icon" title="Légende" @click="editCaption(img)"><i class="ti ti-text-caption"></i></button>
-                        <button class="btn btn-sm btn-icon" title="Rogner / redimensionner" @click="editingPhoto = img"><i class="ti ti-crop"></i></button>
-                        <button class="btn btn-sm btn-icon btn-ghost-danger" title="Supprimer" @click="removePhoto(s, img)"><i class="ti ti-trash"></i></button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <button class="btn btn-sm btn-icon btn-ghost-danger ms-auto" title="Détacher" @click="removeDevis(d)"><i class="ti ti-unlink"></i></button>
               </div>
             </div>
           </div>
@@ -397,6 +410,81 @@ async function onPhotoEdited() {
             :defaults="{ journal_id: Number(id), projet_id: journal.projet_id, client_id: journal.client_id }"
             @changed="load"
           />
+        </div>
+
+        <!-- Aperçu du rapport -->
+        <div class="col-lg-7 journal-print">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title"><i class="ti ti-eye text-primary"></i>Aperçu</h3>
+              <button class="btn btn-sm ms-auto" title="Imprimer ou enregistrer en PDF" @click="printJournal"><i class="ti ti-printer"></i> Imprimer</button>
+            </div>
+            <div class="card-body journal-preview">
+              <!-- En-tête au style de la carte de journal Dash3 -->
+              <div class="d-flex gap-3 pb-2 mb-3 border-bottom border-primary border-2">
+                <div v-if="dateParts" class="preview-date text-center border border-info rounded p-1 text-primary">
+                  <div class="fw-bold text-secondary day">{{ dateParts.day }}</div>
+                  <div class="display-6 lh-1">{{ dateParts.num }}</div>
+                  <div class="fw-bold">{{ dateParts.month }}</div>
+                  <div class="fw-bold">{{ dateParts.year }}</div>
+                </div>
+                <div class="min-w-0 flex-fill">
+                  <div class="text-primary fw-bold border-bottom pb-1 mb-1">{{ (journal.type || "Rapport d'intervention").toUpperCase() }}</div>
+                  <div class="h2 m-0">{{ journal.title }}</div>
+                  <div v-if="journal.projet" class="text-secondary small mt-1">
+                    <span v-if="journal.projet.client">{{ journal.projet.client.name }} / </span>{{ journal.projet.name }}
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="journal.description" class="mb-3 description">{{ journal.description }}</div>
+
+              <section v-if="journal.intervenants?.length" class="mb-3">
+                <h4 class="preview-title">Intervenants</h4>
+                <table class="table table-sm mb-0">
+                  <tbody>
+                    <tr v-for="i in journal.intervenants" :key="i.id">
+                      <td class="fw-medium">{{ intervenantName(i) }}</td>
+                      <td class="text-secondary">{{ intervenantRole(i) }}</td>
+                      <td class="text-secondary text-end">{{ i.contact?.phone || '' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </section>
+
+              <section v-for="s in journal.sections" :key="s.id" class="mb-3 preview-section">
+                <h4 class="preview-title">{{ s.name }}</h4>
+                <!-- eslint-disable-next-line vue/no-v-html -- renderMarkdown échappe le texte avant le rendu -->
+                <div v-if="s.description" class="md-body" v-html="renderMarkdown(s.description)"></div>
+                <div v-if="s.images?.length" class="row g-2 mt-1">
+                  <figure v-for="img in s.images" :key="img.id" class="col-6 col-md-4 m-0">
+                    <img :src="img.url" :alt="img.caption || ''" class="preview-photo rounded" loading="lazy" @click="viewer = img.url" />
+                    <figcaption v-if="img.caption" class="small text-secondary text-center mt-1">{{ img.caption }}</figcaption>
+                  </figure>
+                </div>
+              </section>
+
+              <section v-if="journal.invoices?.length" class="mb-3">
+                <h4 class="preview-title">Devis</h4>
+                <div v-for="d in journal.invoices" :key="d.id" class="d-flex small mb-1">
+                  <b class="me-2">{{ d.reference }}</b>
+                  <span class="text-secondary text-truncate">{{ d.description }}</span>
+                  <span v-if="d.statut" class="ms-auto badge bg-blue-lt">{{ d.statut }}</span>
+                </div>
+              </section>
+
+              <section v-if="journal.tasks?.length">
+                <h4 class="preview-title">Tâches</h4>
+                <div v-for="t in journal.tasks" :key="t.id" class="small mb-1">
+                  <i :class="['ti me-1', Number(t.statut_id) >= 4 ? 'ti-square-check text-success' : 'ti-square']"></i>{{ t.name }}
+                </div>
+              </section>
+
+              <div v-if="!journal.sections?.length && !journal.description" class="text-secondary text-center py-4">
+                Remplissez les cartes à gauche : l'aperçu du rapport se met à jour ici.
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -488,8 +576,61 @@ async function onPhotoEdited() {
 .md-body :deep(p:last-child) {
   margin-bottom: 0;
 }
-.photo-img {
-  height: 130px;
+.thumb {
+  position: relative;
+  width: 72px;
+  height: 72px;
+}
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 4px;
+  cursor: zoom-in;
+}
+.thumb-actions {
+  position: absolute;
+  inset: auto 0 0 0;
+  display: none;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 0 0 4px 4px;
+}
+.thumb:hover .thumb-actions,
+.thumb:focus-within .thumb-actions {
+  display: flex;
+}
+.thumb-actions .btn {
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 0.8rem;
+}
+.preview-date {
+  width: 70px;
+  flex-shrink: 0;
+}
+.preview-date .day {
+  font-size: 10px;
+}
+.preview-title {
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tblr-primary);
+  border-bottom: 1px solid var(--tblr-primary);
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+}
+.preview-section {
+  break-inside: avoid-page;
+}
+.preview-photo {
+  width: 100%;
+  height: 150px;
   object-fit: cover;
   cursor: zoom-in;
 }

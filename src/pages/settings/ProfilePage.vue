@@ -1,4 +1,5 @@
 <script setup>
+import { cssUrl } from '@/utils/cssUrl'
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
@@ -41,7 +42,7 @@ async function logout() {
             <div class="card-body p-4 text-center">
               <span
                 class="avatar rounded-2 avatar-xl mb-3"
-                :style="auth.user?.avatar ? { backgroundImage: `url(${auth.user.avatar})` } : null"
+                :style="auth.user?.avatar ? { backgroundImage: cssUrl(auth.user.avatar) } : null"
               >
                 <i v-if="!auth.user?.avatar" class="ti ti-user" style="font-size: 2rem"></i>
               </span>

@@ -2,11 +2,13 @@
 /** Liste des journaux : recherche, création, accès à la page du journal. */
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { formatDate, saveJournal } from '@/api/dash3'
+import { errorMessage } from '@/api/client'
+import { deleteJournal, saveJournal } from '@/api/dash3'
 import { usePaginatedList } from '@/composables/usePaginatedList'
 import PageHeader from '@/components/PageHeader.vue'
 import Pagination from '@/components/Pagination.vue'
 import NamedFormModal from '@/components/forms/NamedFormModal.vue'
+import JournalCard from '@/components/cards/JournalCard.vue'
 
 const router = useRouter()
 const { items, page, lastPage, total, search, loading, error, load } = usePaginatedList('/journaux', { per_page: 12 })
@@ -19,22 +21,36 @@ const fields = [
   { name: 'description', label: 'Description', type: 'textarea' },
 ]
 const open = ref(false)
+const editing = ref(null)
+function edit(j = null) {
+  editing.value = j
+  open.value = true
+}
 let created = null
 const submit = async (v) => {
-  const { data } = await saveJournal(v)
-  created = data?.data
+  const { data } = await saveJournal(v, editing.value?.id)
+  created = editing.value ? null : data?.data
 }
 function onSaved() {
   open.value = false
   if (created?.id) router.push({ name: 'journal', params: { id: created.id } })
-  else load(1)
+  else load(page.value)
+}
+async function remove(j) {
+  if (!confirm(`Supprimer le journal « ${j.title} » ?`)) return
+  try {
+    await deleteJournal(j.id)
+    await load(page.value)
+  } catch (e) {
+    error.value = errorMessage(e)
+  }
 }
 </script>
 
 <template>
   <PageHeader title="Journaux">
     <template #actions>
-      <button class="btn btn-primary" @click="open = true"><i class="ti ti-plus"></i> Journal</button>
+      <button class="btn btn-primary" @click="edit()"><i class="ti ti-plus"></i> Journal</button>
     </template>
   </PageHeader>
 
@@ -56,29 +72,7 @@ function onSaved() {
 
       <div v-else class="row row-cards">
         <div v-for="j in items" :key="j.id" class="col-md-6 col-xl-4">
-          <div class="card h-100">
-            <div class="card-header">
-              <div class="min-w-0">
-                <RouterLink :to="{ name: 'journal', params: { id: j.id } }" class="card-title text-reset d-block text-truncate">{{ j.title }}</RouterLink>
-                <div class="text-secondary small">
-                  {{ formatDate(j.date) }}<span v-if="j.type"> · {{ j.type }}</span>
-                </div>
-              </div>
-            </div>
-            <div class="card-body py-2">
-              <div v-if="j.projet" class="small mb-1">
-                <i class="ti ti-folder text-secondary"></i>
-                <RouterLink :to="{ name: 'projet', params: { id: j.projet.id } }">{{ j.projet.name }}</RouterLink>
-                <span v-if="j.projet.client" class="text-secondary"> · {{ j.projet.client.name }}</span>
-              </div>
-              <div v-if="j.description" class="text-secondary small description-clamp">{{ j.description }}</div>
-            </div>
-            <div class="card-footer d-flex align-items-center py-2">
-              <span class="badge bg-azure-lt me-1"><i class="ti ti-list-details"></i> {{ j.sections_count ?? 0 }}</span>
-              <span class="badge bg-primary-lt"><i class="ti ti-users"></i> {{ j.intervenants_count ?? 0 }}</span>
-              <RouterLink :to="{ name: 'journal', params: { id: j.id } }" class="btn btn-sm btn-primary ms-auto">Ouvrir</RouterLink>
-            </div>
-          </div>
+          <JournalCard :journal="j" counts @edit="edit" @delete="remove" />
         </div>
         <div class="col-12">
           <div class="card">
@@ -89,15 +83,14 @@ function onSaved() {
     </div>
   </div>
 
-  <NamedFormModal :show="open" title="Nouveau journal" :fields="fields" :submit="submit" @close="open = false" @saved="onSaved" />
+  <NamedFormModal
+    :show="open"
+    :title="editing ? 'Modifier le journal' : 'Nouveau journal'"
+    :fields="fields"
+    :initial="editing"
+    :submit="submit"
+    @close="open = false"
+    @saved="onSaved"
+  />
 </template>
 
-<style scoped>
-.description-clamp {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  white-space: pre-line;
-}
-</style>

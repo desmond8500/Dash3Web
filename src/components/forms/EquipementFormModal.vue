@@ -1,4 +1,5 @@
 <script setup>
+import { cssUrl } from '@/utils/cssUrl'
 /**
  * Équipement d'un système : de base (ex. NVR) ou secondaire (ex. caméra, disque dur).
  * Les caractéristiques sont libres (nom / valeur), avec des suggestions selon le type.
@@ -187,7 +188,7 @@ const title = computed(() => {
       <div class="col-md-8 mb-3">
         <label class="form-label">Article lié</label>
         <div v-if="article" class="d-flex align-items-center gap-2 border rounded p-2">
-          <span class="avatar avatar-sm rounded-2" :style="article.image_url ? { backgroundImage: `url(${article.image_url})` } : null">
+          <span class="avatar avatar-sm rounded-2" :style="article.image_url ? { backgroundImage: cssUrl(article.image_url) } : null">
             <i v-if="!article.image_url" class="ti ti-package"></i>
           </span>
           <div class="flex-fill min-w-0">

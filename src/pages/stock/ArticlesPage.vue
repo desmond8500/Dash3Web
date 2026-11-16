@@ -170,7 +170,7 @@ async function afterQuickAdd() {
                 <h2 class="accordion-header">
                   <button class="accordion-button" :class="{ collapsed: !open.brand }" type="button" @click="open.brand = !open.brand">Marques</button>
                 </h2>
-                <div v-show="open.brand" class="accordion-body pt-0">
+                <div v-show="open.brand" class="accordion-body pt-0 px-2">
                   <div class="input-icon mb-2">
                     <input v-model="searchBrand" type="text" class="form-control form-control-rounded" placeholder="Chercher une marque" />
                     <span class="input-icon-addon"><i class="ti ti-search"></i></span>
@@ -178,8 +178,8 @@ async function afterQuickAdd() {
                   <button
                     v-for="b in shownBrands"
                     :key="b.id"
-                    class="btn btn-sm rounded mb-1 me-1"
-                    :class="params.brand_id === b.id ? 'btn-primary' : 'btn-outline-primary'"
+                    class="filter-tag"
+                    :class="{ active: params.brand_id === b.id }"
                     @click="setFilter('brand_id', b.id)"
                   >
                     {{ b.name }}
@@ -191,7 +191,7 @@ async function afterQuickAdd() {
                 <h2 class="accordion-header">
                   <button class="accordion-button" :class="{ collapsed: !open.provider }" type="button" @click="open.provider = !open.provider">Fournisseurs</button>
                 </h2>
-                <div v-show="open.provider" class="accordion-body pt-0">
+                <div v-show="open.provider" class="accordion-body pt-0 px-2">
                   <div class="input-icon mb-2">
                     <input v-model="searchProvider" type="text" class="form-control form-control-rounded" placeholder="Chercher un fournisseur" />
                     <span class="input-icon-addon"><i class="ti ti-search"></i></span>
@@ -199,8 +199,8 @@ async function afterQuickAdd() {
                   <button
                     v-for="p in shownProviders"
                     :key="p.id"
-                    class="btn btn-sm rounded mb-1 me-1"
-                    :class="params.provider_id === p.id ? 'btn-primary' : 'btn-outline-primary'"
+                    class="filter-tag"
+                    :class="{ active: params.provider_id === p.id }"
                     @click="setFilter('provider_id', p.id)"
                   >
                     {{ p.name }}
@@ -212,12 +212,12 @@ async function afterQuickAdd() {
                 <h2 class="accordion-header">
                   <button class="accordion-button" :class="{ collapsed: !open.priority }" type="button" @click="open.priority = !open.priority">Priorités</button>
                 </h2>
-                <div v-show="open.priority" class="accordion-body pt-0">
+                <div v-show="open.priority" class="accordion-body pt-0 px-2">
                   <button
                     v-for="p in PRIORITIES"
                     :key="p.id"
-                    class="btn btn-sm rounded mb-1 me-1"
-                    :class="params.priority_id === p.id ? 'btn-primary' : 'btn-outline-primary'"
+                    class="filter-tag"
+                    :class="{ active: params.priority_id === p.id }"
                     @click="setFilter('priority_id', p.id)"
                   >
                     {{ p.name }}
@@ -229,17 +229,18 @@ async function afterQuickAdd() {
                 <h2 class="accordion-header">
                   <button class="accordion-button" :class="{ collapsed: !open.type }" type="button" @click="open.type = !open.type">Types</button>
                 </h2>
-                <div v-show="open.type" class="accordion-body pt-0">
+                <div v-show="open.type" class="accordion-body pt-0 px-2">
                   <div v-if="!types.length" class="text-secondary small">Aucun type</div>
-                  <span
+                  <button
                     v-for="t in types"
                     :key="t.id"
-                    class="badge cursor-pointer mb-1 me-1"
-                    :class="params.type === t.name ? 'bg-primary text-light' : 'bg-primary-lt'"
+                    type="button"
+                    class="filter-tag"
+                    :class="{ active: params.type === t.name }"
                     @click="setFilter('type', t.name)"
                   >
-                    {{ t.name }}
-                  </span>
+                    <i class="ti ti-tag"></i>{{ t.name }}
+                  </button>
                 </div>
               </div>
             </div>
@@ -299,3 +300,38 @@ async function afterQuickAdd() {
   <NamedFormModal :show="brandOpen" title="Ajouter une marque" :fields="brandFields" :submit="(v) => saveBrand(v)" @close="brandOpen = false" @saved="afterQuickAdd" />
   <NamedFormModal :show="providerOpen" title="Ajouter un fournisseur" :fields="providerFields" :submit="(v) => saveProvider(v)" @close="providerOpen = false" @saved="afterQuickAdd" />
 </template>
+
+<style scoped>
+/* Étiquettes de filtre fines : texte petit, contour léger, peu de marge */
+.filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin: 0 3px 3px 0;
+  padding: 0 7px;
+  height: 20px;
+  font-size: 0.7rem;
+  line-height: 1;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tblr-secondary);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+.filter-tag .ti {
+  font-size: 0.7rem;
+}
+.filter-tag:hover {
+  border-color: var(--tblr-primary);
+  color: var(--tblr-primary);
+}
+.filter-tag.active {
+  border-color: var(--tblr-primary);
+  background: var(--tblr-primary);
+  color: #fff;
+}
+</style>

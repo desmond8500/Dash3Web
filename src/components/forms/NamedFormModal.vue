@@ -35,6 +35,12 @@ watch(
   },
 )
 
+/** Insère un texte prédéfini à la suite du contenu du champ */
+function insertPreset(f, text) {
+  const current = String(values[f.name] ?? '').trim()
+  values[f.name] = current ? `${current}\n${text}` : text
+}
+
 const canSubmit = () => props.fields.every((f) => !f.required || String(values[f.name] ?? '').trim())
 
 async function onSubmit() {

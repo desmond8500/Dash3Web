@@ -1,15 +1,17 @@
 <script setup>
+import { cssUrl } from '@/utils/cssUrl'
 /**
  * Page de détail d'un CV : contenu (coordonnées, accroche, sections et lignes)
  * à gauche, aperçu personnalisable à droite (couleur, police, mise en page).
  */
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { errorMessage } from '@/api/client'
 import {
   CV_SECTION_TYPES,
   deleteCvItem,
   deleteCvSection,
+  duplicateCv,
   getCv,
   saveCv,
   saveCvItem,
@@ -23,9 +25,11 @@ import ImageUploadModal from '@/components/ImageUploadModal.vue'
 import MarkdownEditor from '@/components/erp/MarkdownEditor.vue'
 
 const route = useRoute()
+const router = useRouter()
 const id = computed(() => route.params.id)
 
 const cv = ref(null)
+const photoBroken = ref(false)
 const loading = ref(true)
 const error = ref('')
 const saved = ref('')
@@ -35,6 +39,7 @@ async function load() {
   error.value = ''
   try {
     cv.value = await getCv(id.value)
+    photoBroken.value = false
   } catch (e) {
     error.value = errorMessage(e)
   } finally {
@@ -113,21 +118,43 @@ const twoColumns = computed(() => cv.value?.layout === 'deux_colonnes')
 const accent = computed(() => cv.value?.accent_color || '#1690b7')
 
 // ---------- Sections ----------
-const sectionFields = computed(() => [
-  { name: 'name', label: 'Titre de la section', required: true, col: 'col-md-7' },
-  { name: 'type', label: 'Type', type: 'select', options: CV_SECTION_TYPES, required: true, default: 'libre', col: 'col-md-5' },
-])
+const typeLabel = (type) => CV_SECTION_TYPES.find((t) => t.value === type)?.label ?? ''
 const sectionOpen = ref(false)
 const editingSection = ref(null)
+const sectionForm = ref({ name: '', type: 'libre' })
+const sectionSaving = ref(false)
+const sectionError = ref('')
 function openSection(s = null) {
   editingSection.value = s
+  const type = s?.type || 'experience'
+  sectionForm.value = { name: s?.name ?? typeLabel(type), type }
+  sectionError.value = ''
   sectionOpen.value = true
 }
-const submitSection = (v) =>
-  saveCvSection(editingSection.value ? v : { ...v, c_v_id: cv.value.id, order: cv.value.sections.length }, editingSection.value?.id)
-async function onSectionSaved() {
-  sectionOpen.value = false
-  await load()
+/** Changement de type : le titre suit, sauf s'il a été personnalisé */
+function onSectionType(type) {
+  const previous = typeLabel(sectionForm.value.type)
+  const name = sectionForm.value.name.trim()
+  if (!name || name === previous) sectionForm.value.name = typeLabel(type)
+  sectionForm.value.type = type
+}
+async function submitSection() {
+  const payload = { name: sectionForm.value.name.trim(), type: sectionForm.value.type }
+  if (!payload.name) return
+  sectionSaving.value = true
+  sectionError.value = ''
+  try {
+    await saveCvSection(
+      editingSection.value ? payload : { ...payload, c_v_id: cv.value.id, order: cv.value.sections.length },
+      editingSection.value?.id,
+    )
+    sectionOpen.value = false
+    await load()
+  } catch (e) {
+    sectionError.value = errorMessage(e)
+  } finally {
+    sectionSaving.value = false
+  }
 }
 async function removeSection(s) {
   if (!confirm(`Supprimer la section « ${s.name} » et son contenu ?`)) return
@@ -218,6 +245,19 @@ const period = (i) => {
   if (i.current) return `${i.start_date || ''} — aujourd'hui`.trim()
   return [i.start_date, i.end_date].filter(Boolean).join(' — ')
 }
+const duplicating = ref(false)
+async function duplicate() {
+  duplicating.value = true
+  try {
+    const copy = await duplicateCv(cv.value.id)
+    if (copy?.id) router.push({ name: 'cv', params: { id: copy.id } })
+  } catch (e) {
+    error.value = errorMessage(e)
+  } finally {
+    duplicating.value = false
+  }
+}
+
 /** Impression (ou enregistrement en PDF) : seul l'aperçu est imprimé, voir styles.css */
 const printCv = () => window.print()
 
@@ -232,6 +272,9 @@ const sideSections = computed(() => (twoColumns.value ? (cv.value?.sections ?? [
     <template #actions>
       <div v-if="cv" class="btn-list align-items-center">
         <span v-if="saved" class="text-green small"><i class="ti ti-check"></i> {{ saved }}</span>
+        <button class="btn" :disabled="duplicating" title="Créer une copie de ce CV" @click="duplicate">
+          <span v-if="duplicating" class="spinner-border spinner-border-sm me-1"></span><i v-else class="ti ti-copy"></i> Dupliquer
+        </button>
         <button class="btn" @click="photoOpen = true"><i class="ti ti-photo"></i> Photo</button>
         <button class="btn btn-primary" @click="infoOpen = true"><i class="ti ti-edit"></i> Informations</button>
       </div>
@@ -367,13 +410,13 @@ const sideSections = computed(() => (twoColumns.value ? (cv.value?.sections ?? [
             <div class="card-body cv-preview" :style="{ fontFamily }">
               <!-- En-tête -->
               <div class="d-flex gap-3 pb-2 mb-3" :style="{ borderBottom: `3px solid ${accent}` }">
-                <span
-                  v-if="cv.show_photo"
-                  class="avatar avatar-xl rounded"
-                  :style="cv.photo_url ? { backgroundImage: `url(${cv.photo_url})` } : null"
-                >
-                  <i v-if="!cv.photo_url" class="ti ti-user" style="font-size: 2rem"></i>
-                </span>
+                <template v-if="cv.show_photo">
+                  <!-- <img> plutôt qu'une image de fond : elle reste visible à l'impression / en PDF -->
+                  <img v-if="cv.photo_url && !photoBroken" :src="cv.photo_url" alt="" class="cv-photo rounded" @error="photoBroken = true" />
+                  <span v-else class="avatar avatar-xl rounded" :title="photoBroken ? 'Photo introuvable sur le serveur' : ''">
+                    <i :class="['ti', photoBroken ? 'ti-photo-off' : 'ti-user']" style="font-size: 2rem"></i>
+                  </span>
+                </template>
                 <div class="min-w-0">
                   <div class="h1 m-0">{{ cv.fullname || cv.name }}</div>
                   <div v-if="cv.title" class="h3 m-0" :style="{ color: accent }">{{ cv.title }}</div>
@@ -466,15 +509,30 @@ const sideSections = computed(() => (twoColumns.value ? (cv.value?.sections ?? [
     <MarkdownEditor v-model="summaryDraft" :rows="8" placeholder="Technicien avec 8 ans d'expérience…" />
   </AppModal>
 
-  <NamedFormModal
+  <AppModal
     :show="sectionOpen"
     :title="editingSection ? 'Modifier la section' : 'Ajouter une section'"
-    :fields="sectionFields"
-    :initial="editingSection"
-    :submit="submitSection"
+    :saving="sectionSaving"
+    :can-submit="!!sectionForm.name.trim()"
+    :error="sectionError"
     @close="sectionOpen = false"
-    @saved="onSectionSaved"
-  />
+    @submit="submitSection"
+  >
+    <div class="mb-3">
+      <label class="form-label required">Type</label>
+      <div class="form-selectgroup">
+        <label v-for="t in CV_SECTION_TYPES" :key="t.value" class="form-selectgroup-item">
+          <input type="radio" class="form-selectgroup-input" :checked="sectionForm.type === t.value" @change="onSectionType(t.value)" />
+          <span class="form-selectgroup-label"><i :class="['ti me-1', t.icon]"></i>{{ t.label }}</span>
+        </label>
+      </div>
+    </div>
+    <div>
+      <label class="form-label required">Titre de la section</label>
+      <input v-model="sectionForm.name" class="form-control" required />
+      <div class="form-hint">Prérempli avec le type choisi, modifiable.</div>
+    </div>
+  </AppModal>
 
   <AppModal
     :show="itemOpen"
@@ -540,6 +598,12 @@ const sideSections = computed(() => (twoColumns.value ? (cv.value?.sections ?? [
 .color-dot.active {
   border-color: var(--tblr-body-color);
   box-shadow: 0 0 0 2px var(--tblr-bg-surface);
+}
+.cv-photo {
+  width: 5rem;
+  height: 5rem;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 .cv-item {
   margin-left: 1.5rem;

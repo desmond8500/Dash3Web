@@ -32,15 +32,19 @@ body {
   .navbar,
   .page-header,
   .cv-editor,
-  .cv-print .card-header {
+  .cv-print .card-header,
+  .journal-editor,
+  .journal-print .card-header {
     display: none !important;
   }
-  .cv-print {
+  .cv-print,
+  .journal-print {
     width: 100% !important;
     max-width: none !important;
     flex: 0 0 100% !important;
   }
-  .cv-print .card {
+  .cv-print .card,
+  .journal-print .card {
     border: 0;
     box-shadow: none;
   }

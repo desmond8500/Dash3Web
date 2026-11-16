@@ -1,4 +1,5 @@
 <script setup>
+import { cssUrl } from '@/utils/cssUrl'
 /**
  * Contacts d'un projet ou d'un client : cartes avec ajout, édition et suppression.
  * `defaults` fixe le rattachement à la création : { projet_id } ou { client_id }.
@@ -62,7 +63,7 @@ async function remove(c) {
       <div v-for="c in contacts" :key="c.id" :class="col">
         <div class="card card-sm h-100">
           <div class="card-body d-flex gap-2">
-            <span class="avatar rounded-2" :style="c.avatar ? { backgroundImage: `url(${c.avatar})` } : null">
+            <span class="avatar rounded-2" :style="c.avatar ? { backgroundImage: cssUrl(c.avatar) } : null">
               <i v-if="!c.avatar" class="ti ti-user"></i>
             </span>
             <div class="min-w-0 flex-fill">

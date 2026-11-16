@@ -1,9 +1,10 @@
 <script setup>
+import { cssUrl } from '@/utils/cssUrl'
 /**
  * Table d'icônes : chaque icône est liée aux articles par un tag (type d'article)
  * et matérialise les équipements correspondants sur les plans.
  */
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { errorMessage } from '@/api/client'
 import { articleTypes, deleteIcon, listIcons, saveIcon } from '@/api/dash3'
 import PageHeader from '@/components/PageHeader.vue'
@@ -73,12 +74,29 @@ async function onImage() {
   await load()
 }
 
-async function quickTabler(i, cls, ev) {
-  // Referme le menu : les boutons de la grille ne sont pas des .dropdown-item,
-  // Bootstrap ne le ferme donc pas tout seul
-  const menu = ev?.target?.closest('.dropdown-menu')
-  menu?.classList.remove('show')
-  menu?.parentElement?.querySelector('[data-bs-toggle]')?.classList.remove('show')
+// Menu « Choisir » piloté par Vue (et non par Bootstrap) : il se referme au choix
+// d'une icône, au clic en dehors et à la touche Échap
+const pickerFor = ref(null)
+function togglePicker(i) {
+  pickerFor.value = pickerFor.value === i.id ? null : i.id
+}
+function closePicker(ev) {
+  if (pickerFor.value === null) return
+  if (ev?.type === 'keydown' && ev.key !== 'Escape') return
+  if (ev?.type === 'click' && ev.target.closest?.('.icon-picker')) return
+  pickerFor.value = null
+}
+onMounted(() => {
+  document.addEventListener('click', closePicker)
+  document.addEventListener('keydown', closePicker)
+})
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closePicker)
+  document.removeEventListener('keydown', closePicker)
+})
+
+async function quickTabler(i, cls) {
+  pickerFor.value = null
   try {
     await saveIcon({ tabler: cls }, i.id)
     i.tabler = cls
@@ -111,7 +129,7 @@ async function quickTabler(i, cls, ev) {
             <div class="card-body text-center">
               <span
                 class="avatar avatar-xl rounded-circle mb-2"
-                :style="i.image_url ? { backgroundImage: `url(${i.image_url})` } : { background: i.color || '#1690b7', color: '#fff' }"
+                :style="i.image_url ? { backgroundImage: cssUrl(i.image_url) } : { background: i.color || '#1690b7', color: '#fff' }"
               >
                 <i v-if="!i.image_url" :class="['ti', i.tabler || 'ti-map-pin']" style="font-size: 2rem"></i>
               </span>
@@ -123,10 +141,18 @@ async function quickTabler(i, cls, ev) {
               <div class="small text-secondary mt-1"><code>{{ i.tabler || '—' }}</code></div>
             </div>
             <div class="card-footer d-flex">
-              <div class="dropdown">
-                <button class="btn btn-sm" type="button" data-bs-toggle="dropdown"><i class="ti ti-icons"></i> Choisir</button>
-                <div class="dropdown-menu icon-grid p-2">
-                  <button v-for="c in SUGGESTIONS" :key="c" type="button" class="btn btn-icon btn-ghost-secondary" :title="c" @click="quickTabler(i, c, $event)">
+              <div class="dropdown icon-picker">
+                <button class="btn btn-sm" type="button" :aria-expanded="pickerFor === i.id" @click="togglePicker(i)"><i class="ti ti-icons"></i> Choisir</button>
+                <div class="dropdown-menu icon-grid p-2" :class="{ show: pickerFor === i.id }">
+                  <button
+                    v-for="c in SUGGESTIONS"
+                    :key="c"
+                    type="button"
+                    class="btn btn-icon"
+                    :class="i.tabler === c ? 'btn-primary' : 'btn-ghost-secondary'"
+                    :title="c"
+                    @click="quickTabler(i, c)"
+                  >
                     <i :class="['ti', c]"></i>
                   </button>
                 </div>
@@ -155,7 +181,12 @@ async function quickTabler(i, cls, ev) {
 </template>
 
 <style scoped>
+/* display: grid seulement à l'ouverture : sinon il l'emporte sur le display: none
+   de .dropdown-menu et la grille reste affichée en permanence */
 .icon-grid {
+  display: none;
+}
+.icon-grid.show {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 2px;

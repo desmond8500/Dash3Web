@@ -6,7 +6,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import api, { errorMessage } from '@/api/client'
-import { createDevis, deleteJournal, formatAmount, formatDate, getProjet, projetBadges, saveJournal, toggleProjetFavorite } from '@/api/dash3'
+import { createDevis, deleteJournal, formatAmount, formatDate, getProjet, saveJournal, saveProjetLocation, toggleProjetFavorite } from '@/api/dash3'
 import PageHeader from '@/components/PageHeader.vue'
 import ProjetFormModal from '@/components/forms/ProjetFormModal.vue'
 import ImageUploadModal from '@/components/ImageUploadModal.vue'
@@ -15,6 +15,9 @@ import InstallationsTab from '@/components/InstallationsTab.vue'
 import TaskList from '@/components/erp/TaskList.vue'
 import ContactsGrid from '@/components/erp/ContactsGrid.vue'
 import ProjetDocuments from '@/components/erp/ProjetDocuments.vue'
+import BadgesManager from '@/components/erp/BadgesManager.vue'
+import LocationCard from '@/components/erp/LocationCard.vue'
+import JournalCard from '@/components/cards/JournalCard.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,7 +40,8 @@ async function load() {
 }
 onMounted(load)
 watch(id, () => {
-  badgesLoaded.value = notesLoaded.value = false
+  notesLoaded.value = false
+  badgesCount.value = documentsCount.value = null
   tab.value = fromQuery()
   load()
 })
@@ -63,37 +67,25 @@ watch(() => route.query.tab, () => {
 })
 
 const pendingTasks = computed(() => (projet.value?.tasks ?? []).filter((t) => Number(t.statut_id) < 4).length)
+// Quantités renvoyées par l'API (projet.counts), mises à jour par les onglets
+const badgesCount = ref(null)
+const documentsCount = ref(null)
 const tabs = computed(() => [
-  { key: 'devis', label: 'Devis', count: projet.value?.invoices?.length },
-  { key: 'taches', label: 'Tâches', count: pendingTasks.value },
-  { key: 'contacts', label: 'Contacts', count: projet.value?.contacts?.length },
-  { key: 'badges', label: 'Badges', count: badgesLoaded.value ? badges.value.length : null },
-  { key: 'notes', label: 'Notes', count: notesLoaded.value ? notes.value.length : null },
-  { key: 'journaux', label: 'Journaux', count: projet.value?.journals?.length },
-  { key: 'documents', label: 'Documents', count: null },
-  { key: 'installations', label: 'Installations', count: projet.value?.buildings?.length },
+  { key: 'devis', label: 'Devis', icon: 'ti-file-invoice', count: projet.value?.invoices?.length ?? 0 },
+  { key: 'taches', label: 'Tâches', icon: 'ti-checkbox', count: pendingTasks.value, hint: `${pendingTasks.value} en cours sur ${projet.value?.tasks?.length ?? 0}` },
+  { key: 'contacts', label: 'Contacts', icon: 'ti-address-book', count: projet.value?.contacts?.length ?? 0 },
+  { key: 'badges', label: 'Badges', icon: 'ti-id-badge-2', count: badgesCount.value ?? projet.value?.counts?.badges ?? null },
+  { key: 'notes', label: 'Notes', icon: 'ti-note', count: notesLoaded.value ? notes.value.length : projet.value?.counts?.notes ?? null },
+  { key: 'journaux', label: 'Journaux', icon: 'ti-notebook', count: projet.value?.journals?.length ?? 0 },
+  { key: 'documents', label: 'Documents', icon: 'ti-files', count: documentsCount.value ?? projet.value?.counts?.documents ?? null },
+  { key: 'installations', label: 'Installations', icon: 'ti-building', count: projet.value?.buildings?.length ?? 0 },
 ])
+const activeTab = computed(() => tabs.value.find((t) => t.key === tab.value))
 
-const badges = ref([])
-const badgesLoaded = ref(false)
-const badgeModeles = ref([])
-onMounted(async () => {
-  try {
-    const { data } = await api.get('/badge_modeles')
-    badgeModeles.value = data?.data ?? []
-  } catch {
-    badgeModeles.value = []
-  }
-})
-watch(tab, async (t) => {
-  if (t !== 'badges' || badgesLoaded.value) return
-  try {
-    badges.value = await projetBadges(id.value)
-  } catch (e) {
-    error.value = errorMessage(e)
-  }
-  badgesLoaded.value = true
-})
+const saveLocation = async (payload) => {
+  const loc = await saveProjetLocation(projet.value.id, payload)
+  Object.assign(projet.value, loc ?? payload)
+}
 
 const notes = ref([])
 const notesLoaded = ref(false)
@@ -307,10 +299,6 @@ const progress = computed(() => {
                   </div>
                 </div>
                 <div class="datagrid-item">
-                  <div class="datagrid-title">Devis</div>
-                  <div class="datagrid-content">{{ projet.invoices?.length ?? 0 }}</div>
-                </div>
-                <div class="datagrid-item">
                   <div class="datagrid-title">Début</div>
                   <div class="datagrid-content">{{ formatDate(projet.start_date) }}</div>
                 </div>
@@ -337,6 +325,24 @@ const progress = computed(() => {
                 </div>
               </div>
               <div v-if="projet.description" class="mt-3 description">{{ projet.description }}</div>
+            </div>
+
+            <!-- Onglets du projet, avec leurs quantités -->
+            <div class="projet-tabs border-top">
+              <button
+                v-for="t in tabs"
+                :key="t.key"
+                type="button"
+                class="projet-tab"
+                :class="{ active: tab === t.key }"
+                :title="t.hint || t.label"
+                :aria-pressed="tab === t.key"
+                @click="tab = t.key"
+              >
+                <i :class="['ti', t.icon]"></i>
+                <span class="label">{{ t.label }}</span>
+                <span class="count">{{ t.count ?? '—' }}</span>
+              </button>
             </div>
           </div>
 
@@ -365,43 +371,22 @@ const progress = computed(() => {
             </div>
           </div>
 
-          <!-- Modèles de badge -->
-          <div class="card mt-3">
-            <div class="card-header"><h3 class="card-title"><i class="ti ti-id-badge-2"></i>Modèles de badge</h3></div>
-            <div class="list-group list-group-flush">
-              <div v-if="!badgeModeles.length" class="list-group-item text-secondary">Aucun modèle de badge</div>
-              <div v-for="m in badgeModeles" :key="m.id" class="list-group-item d-flex align-items-center gap-2">
-                <span class="avatar avatar-sm rounded-2" :style="m.file ? { backgroundImage: `url(${m.file})` } : null">
-                  <i v-if="!m.file" class="ti ti-id-badge-2"></i>
-                </span>
-                <div class="min-w-0">
-                  <div class="fw-medium text-truncate">{{ m.name }}</div>
-                  <div class="text-secondary small">{{ m.badges_count }} badge(s)</div>
-                </div>
-                <a v-if="m.file" :href="m.file" target="_blank" class="btn btn-icon btn-ghost-primary ms-auto" title="Voir le modèle">
-                  <i class="ti ti-external-link"></i>
-                </a>
-              </div>
-            </div>
-          </div>
+          <!-- Localisation (aussi lue par Dash3Mobile) -->
+          <LocationCard
+            class="mt-3"
+            :address="projet.address || ''"
+            :latitude="projet.latitude"
+            :longitude="projet.longitude"
+            :save="saveLocation"
+          />
         </div>
 
         <!-- Colonne droite : onglets -->
         <div class="col-md-8">
-          <nav class="nav nav-segmented w-100 mb-2 border" role="tablist">
-            <button
-              v-for="t in tabs"
-              :key="t.key"
-              class="nav-link"
-              :class="{ active: tab === t.key }"
-              role="tab"
-              :aria-selected="tab === t.key"
-              @click="tab = t.key"
-            >
-              {{ t.label }}
-              <span v-if="t.count" class="badge bg-primary-lt ms-1">{{ t.count }}</span>
-            </button>
-          </nav>
+          <h3 v-if="activeTab" class="d-flex align-items-center gap-2 mb-2">
+            <i :class="['ti text-primary', activeTab.icon]"></i>{{ activeTab.label }}
+            <span v-if="activeTab.count" class="badge bg-primary-lt">{{ activeTab.count }}</span>
+          </h3>
 
           <!-- Devis : consultation, création ; modification dans la page devis -->
           <div v-if="tab === 'devis'" class="card">
@@ -474,68 +459,27 @@ const progress = computed(() => {
             </div>
           </div>
 
-          <!-- Journaux : frise chronologique -->
-          <div v-else-if="tab === 'journaux'" class="card">
-            <div class="card-header">
-              <h3 class="card-title">Journaux</h3>
-              <button class="btn btn-primary btn-sm ms-auto" @click="openJournal()"><i class="ti ti-plus"></i> Journal</button>
+          <!-- Journaux : cartes au style de Dash3 -->
+          <div v-else-if="tab === 'journaux'">
+            <div class="d-flex mb-2">
+              <button class="btn btn-primary ms-auto" @click="openJournal()"><i class="ti ti-plus"></i> Journal</button>
             </div>
-            <div class="card-body">
-              <div v-if="!sortedJournals.length" class="text-secondary">Aucun journal</div>
-              <div v-else class="list list-timeline">
-                <div v-for="j in sortedJournals" :key="j.id" class="list-timeline-item">
-                  <div class="list-timeline-time text-nowrap">{{ formatDate(j.date) }}</div>
-                  <div class="list-timeline-icon bg-primary"><i class="ti ti-notebook"></i></div>
-                  <div class="list-timeline-content">
-                    <div class="d-flex align-items-start">
-                      <div class="min-w-0">
-                        <div class="fw-bold">
-                          <RouterLink :to="{ name: 'journal', params: { id: j.id } }" class="text-reset">{{ j.title }}</RouterLink>
-                          <span v-if="j.type" class="badge bg-azure-lt ms-1">{{ j.type }}</span>
-                        </div>
-                        <div v-if="j.description" class="text-secondary description">{{ j.description }}</div>
-                      </div>
-                      <div class="ms-auto dropdown">
-                        <button class="btn btn-action" type="button" data-bs-toggle="dropdown" aria-label="Actions"><i class="ti ti-dots-vertical"></i></button>
-                        <div class="dropdown-menu dropdown-menu-end">
-                          <RouterLink class="dropdown-item" :to="{ name: 'journal', params: { id: j.id } }"><i class="ti ti-arrow-right"></i> Ouvrir</RouterLink>
-                          <button class="dropdown-item" type="button" @click="openJournal(j)"><i class="ti ti-edit"></i> Éditer</button>
-                          <button class="dropdown-item text-danger" type="button" @click="removeJournal(j)"><i class="ti ti-trash"></i> Supprimer</button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div v-if="!sortedJournals.length" class="card card-body text-secondary">Aucun journal</div>
+            <div class="row g-2">
+              <div v-for="j in sortedJournals" :key="j.id" class="col-md-6">
+                <JournalCard :journal="{ ...j, projet: { id: projet.id, name: projet.name, client: projet.client_id ? { id: projet.client_id, name: projet.client_name } : null } }" @edit="openJournal(j)" @delete="removeJournal(j)" />
               </div>
             </div>
           </div>
 
           <!-- Badges -->
-          <div v-else-if="tab === 'badges'">
-            <div v-if="!badgesLoaded" class="text-center py-3"><div class="spinner-border spinner-border-sm"></div></div>
-            <div v-else-if="!badges.length" class="card card-body text-secondary">Aucun badge</div>
-            <div class="row g-2">
-              <div v-for="b in badges" :key="b.id" class="col-md-4">
-                <div class="card card-sm">
-                  <div class="card-body text-center">
-                    <span class="avatar avatar-lg rounded-2 mb-2" :style="b.photo ? { backgroundImage: `url(${b.photo})` } : null">
-                      <i v-if="!b.photo" class="ti ti-id-badge-2"></i>
-                    </span>
-                    <div class="fw-bold">{{ [b.prenom, b.nom].filter(Boolean).join(' ') }}</div>
-                    <div class="text-secondary small">{{ b.fonction }}</div>
-                    <div class="text-secondary small">{{ [b.service, b.direction].filter(Boolean).join(' · ') }}</div>
-                    <div v-if="b.matricule" class="badge bg-blue-lt mt-1">{{ b.matricule }}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+          <BadgesManager v-else-if="tab === 'badges'" :key="`badges-${id}`" :projet="projet" @changed="(n) => (badgesCount = n)" />
 
           <!-- Installations : bâtiments › systèmes › équipements, plans -->
           <InstallationsTab v-else-if="tab === 'installations'" :key="`inst-${id}`" :projet-id="id" />
 
           <!-- Documents de tout type -->
-          <ProjetDocuments v-else-if="tab === 'documents'" :key="`docs-${id}`" :projet-id="id" />
+          <ProjetDocuments v-else-if="tab === 'documents'" :key="`docs-${id}`" :projet-id="id" @changed="(n) => (documentsCount = n)" />
         </div>
       </div>
     </div>
@@ -581,5 +525,48 @@ const progress = computed(() => {
 <style scoped>
 .description {
   white-space: pre-line;
+}
+/* Onglets dans la carte résumé : grille de raccourcis avec quantités */
+.projet-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+.projet-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  padding: 0.5rem 0.25rem;
+  border: 0;
+  border-right: 1px solid var(--tblr-border-color);
+  border-bottom: 1px solid var(--tblr-border-color);
+  background: transparent;
+  color: var(--tblr-secondary);
+  font-size: 0.75rem;
+  line-height: 1.2;
+}
+.projet-tab:nth-child(4n) {
+  border-right: 0;
+}
+.projet-tab:nth-last-child(-n + 4) {
+  border-bottom: 0;
+}
+.projet-tab .ti {
+  font-size: 1.15rem;
+}
+.projet-tab .count {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--tblr-body-color);
+}
+.projet-tab:hover {
+  background: var(--tblr-bg-surface-secondary);
+}
+.projet-tab.active {
+  background: var(--tblr-primary-lt);
+  color: var(--tblr-primary);
+}
+.projet-tab.active .count {
+  color: var(--tblr-primary);
 }
 </style>
