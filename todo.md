@@ -4,63 +4,60 @@
 
 Front End Dash3
 
-## Page de devis
-
-- [x] Dans le formulaire d'ajout, ajouter une liste déroulante facutative à coté du champ description qui permet d'insérer les textes suivants
-  - Fourniture, Tirage, pose et connexion
-  - Extration d'images
-  - Tirage de cables
-- [x] Dans le meme formulaire ajouter une liste déroulante facultative :
-  - 60% à la commande et 40% à la livraison
-  - 100% du matériel à la commande et le reliquat à la livraison
-  - Paiement complet avant exécution des travaux
-
 ## Page CV
 
-- [x] Programmer la page CV
-- [ ] creer une pafe de détail de cv
-- [ ] personnaliser les cv
+- [ ] Dans le formulaire Ajouter une section mettre le nom du type selectionné dans le champ titre de la section avec une possibilité de modification
+- [ ] la photo ne s'affiche pas
+- [ ] Possibilité de dupliquer un cv
+
+## Formulaire d'ajout de client
+
+- [ ] Ajouter un input image
+
+## Planning de la semaine
+
+- [ ] Fais moi une proposition pour la gestion de cette section
 
 ## Page Icones
 
-- [x] les dropdown choisir reste déroulé
+- [ ] les dropdown choisir ne doit pas rester déroulé
 
 ## Page Projet
 
-- [x] onglet devis
-  - Afficher le montant total du devis
-  - Afficher la date de paiement
-- [x] Onglet badges
-  - créer une carte en dessous de batiment et mettre la liste des modèles de badge
+- [ ] mettre les onglets devis taches et autres dans la carte resume du projet avec les quantités
+- [ ] mettre en place un système qui permet d'ajouter un gestionnaire de badge
+  - [ ] il faut un formulaire pour les informations du badge
+  - [ ] une solution pour intéger un modèle de badge spécifique au client
 
 ## Page Articles
 
-- [x] Optimiser les filtres
-- [x] Afficher les tags sur les articles
+- [ ] Mettre des tags plus fins dans le filtre de recherches
 
 ## Page Article
 
-- [x] Gestion des liens
-  - ajout et suppression
-- [x] Gestion des documents
-  - ajout et suppression
-- [x] Ajouter un filtre pour l'ajout des tags
+- [ ] Réduire l'espacement des li de la section lien et documents 
+- [ ] Enlever le bouton d'incrementation et de deécrémentation, 
+  - [ ] mettre le bouton de suppression sur la carte
 
-## Stock
+## Page Fournisseurs
 
-- [x] Créer une page fournisseur comme dans Dash3 et faire la redirection lorsqu'on clique sur un fournisseur
-- [x] meme chose pour les marques
-- [x] Créer une page de commandes
+- [ ] Ajouter des documents 
+  - [ ] catalogues
+  - [ ] flayer
+  - [ ] adresse map (intégrer aussi à dash3Mobile)
+  - [ ] etc
+- [ ] Ajouter des liens
+
+## Page projet
+
+- [ ] Ajouter une localisation map (intégrer aussi à dash3Mobile)
+- [ ] Ajouter des documents 
+  - [ ] catalogues
+  - [ ] flayer
+  - [ ] adresse map (intégrer aussi à dash3Mobile)
+  - [ ] etc
 
 ## Journal Page
 
-- [x] Créer une page un journal
-- [x] Associer :
-  - des intervenants
-  - des taches
-  - des devis
-  - des sections
-    - titre
-    - description
-    - photos
-- [x] Integrer un editeur markdown pour editer la section
+- [ ] Utiliser le style de carte de joournal de dash3
+- [ ] Modifier l'interface du journal qu'il ressemble à celui du cv avec l'apercu et les cartes à coté à remplir
