@@ -1,4 +1,5 @@
 import api, { errorMessage, normalizeList } from '@/api/client'
+import { markImageEdited } from '@/utils/imageVersions'
 
 // ---------- Recherche globale ----------
 
@@ -61,6 +62,27 @@ export const formatAmount = (n) =>
 export const formatDate = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '—')
 
 // ---------- Écriture (formulaires des pages ERP / Stock) ----------
+
+// ---------- Édition d'images (rogner, pivoter, redimensionner) ----------
+
+/** Dimensions d'une image déjà enregistrée (path = URL affichée ou « storage/… ») */
+export async function imageInfo(path) {
+  const { data } = await api.get('/images/info', { params: { path } })
+  return data?.data
+}
+
+/**
+ * Modifie une image enregistrée sur le serveur.
+ * ops : { rotate, flip_h, flip_v, crop: {x,y,width,height}, resize: {width,height}, quality }
+ * mode : 'replace' (écrase, les liens restent valables) | 'copy' (nouveau fichier à côté)
+ * Renvoie { path, url, width, height, size, version }
+ */
+export async function editImage(path, ops, mode = 'replace') {
+  const { data } = await api.post('/images/edit', { path, ...ops, mode })
+  const result = data?.data
+  if (result?.path) markImageEdited(result.path, result.version)
+  return result
+}
 
 /** Envoie une image (multipart, champ « image ») vers un endpoint de logo / avatar */
 export async function uploadImage(endpoint, file) {
@@ -270,6 +292,9 @@ export const removeCommande = (articleId) => api.delete(`/commandes/articles/${a
 // ---------- Journal détaillé ----------
 export const getJournal = async (id) => (await api.get(`/journaux/${id}`)).data?.data
 export const journalOptions = async (id) => (await api.get(`/journaux/${id}/options`)).data?.data ?? { contacts: [], team: [] }
+export const journalDevisOptions = async (id) => (await api.get(`/journaux/${id}/devis`)).data?.data ?? []
+export const attachJournalDevis = (id, invoiceId) => api.post(`/journaux/${id}/devis`, { invoice_id: invoiceId })
+export const detachJournalDevis = (id, invoiceId) => api.delete(`/journaux/${id}/devis/${invoiceId}`)
 export const addIntervenant = async (id, payload) => (await api.post(`/journaux/${id}/intervenants`, payload)).data?.data
 export const removeIntervenant = (id) => api.delete(`/journal_intervenants/${id}`)
 export const saveJournalSection = (payload, id) => (id ? api.put(`/journal_sections/${id}`, payload) : api.post('/journal_sections', payload))
@@ -280,8 +305,23 @@ export async function uploadSectionImages(sectionId, files) {
   return (await api.post(`/journal_sections/${sectionId}/images`, form, { headers: { 'Content-Type': 'multipart/form-data' } })).data?.data
 }
 export const deleteJournalImage = (id) => api.delete(`/journal_images/${id}`)
+export const captionJournalImage = (id, caption) => api.put(`/journal_images/${id}`, { caption })
 
 // ---------- CV ----------
 export const listCvs = async () => (await api.get('/cvs')).data?.data ?? []
+export const getCv = async (id) => (await api.get(`/cvs/${id}`)).data?.data
 export const saveCv = (payload, id) => (id ? api.put(`/cvs/${id}`, payload) : api.post('/cvs', payload))
 export const deleteCv = (id) => api.delete(`/cvs/${id}`)
+export const saveCvSection = (payload, id) => (id ? api.put(`/cv_sections/${id}`, payload) : api.post('/cv_sections', payload))
+export const deleteCvSection = (id) => api.delete(`/cv_sections/${id}`)
+export const saveCvItem = (payload, id) => (id ? api.put(`/cv_items/${id}`, payload) : api.post('/cv_items', payload))
+export const deleteCvItem = (id) => api.delete(`/cv_items/${id}`)
+
+/** Types de section proposés, avec leur icône */
+export const CV_SECTION_TYPES = [
+  { value: 'experience', label: 'Expériences', icon: 'ti-briefcase' },
+  { value: 'formation', label: 'Formations', icon: 'ti-school' },
+  { value: 'competence', label: 'Compétences', icon: 'ti-stars' },
+  { value: 'langue', label: 'Langues', icon: 'ti-language' },
+  { value: 'libre', label: 'Section libre', icon: 'ti-list' },
+]

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { bustImageUrls } from '@/utils/imageVersions'
 
 export const TOKEN_KEY = 'dash3.token'
 
@@ -27,7 +28,11 @@ export function setUnauthorizedHandler(fn) {
 }
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Images modifiées depuis l'éditeur : URL versionnée pour contourner le cache du navigateur
+    if (response.data && typeof response.data === 'object') response.data = bustImageUrls(response.data)
+    return response
+  },
   (error) => {
     if (error.response?.status === 401) onUnauthorized()
     return Promise.reject(error)

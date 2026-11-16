@@ -26,3 +26,25 @@ body {
 
 /* Icônes du tableau de bord à la taille de l'icône calendrier */
 .dash-icon { font-size: 2rem; line-height: 1; }
+
+/* Impression d'un CV : seul l'aperçu est imprimé */
+@media print {
+  .navbar,
+  .page-header,
+  .cv-editor,
+  .cv-print .card-header {
+    display: none !important;
+  }
+  .cv-print {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 0 0 100% !important;
+  }
+  .cv-print .card {
+    border: 0;
+    box-shadow: none;
+  }
+  .page-body {
+    margin-top: 0;
+  }
+}
